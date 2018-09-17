@@ -1,4 +1,4 @@
 # sage-sed
 This is a simple python module to create SED and AB magnitude of simulated galaxies from SAGE (Semi Analytic Galaxy Evolution) (Croton et al. 2016).
-You only need to run sage and specify the directory in which you have the results. 
-There is a tutorial in jupyter notebook provided to help.
+You first need to run SAGE and specify the directory where you have the results. 
+Please check the jupyter notebook to see example on how to use this pipeline.
