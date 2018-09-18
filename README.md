@@ -4,8 +4,3 @@ This pipeline have a function to build mass and metallicity histories of simulat
 To create SED and magnitudes from SAGE, you have to run SAGE first.
 Please check the jupyter notebook to see example on how to use this pipeline.
 See "List of filters" to check the list of filters supported by sage-sed.
-
-
-Functions:
-
-
