@@ -1,6 +1,5 @@
 import numpy as np
 Hubble_h = 0.73
-BoxSize = 62.5
 
 def galdtype():
 	# Define the data-type for the public version of SAGE
@@ -77,10 +76,44 @@ def read_one_file(name):
 
 #-----------------------------------------------------------------------------------
     
-def read_redshift_list(redshift, directory, filename):
+def read_redshift_list(redshift, firstfile, lastfile, directory, filename):
 
-    firstfile = 0
-    lastfile = 7
+    FirstSnap = 0
+    LastSnap = len(redshift) - 1
+    snapshot = list(range(len(redshift)-1, -1, -1))
+    Galdesc = galdtype()
+    GHist = []
+    GalsPerTree = []
+
+    for i in range(len(redshift)):
+        GList = []
+        GalsTree = []
+        for j in range(firstfile, lastfile+1):
+            name = (directory+filename+'_z'+f'{redshift[i]:.3f}'+'_'+f'{j}')
+            G1 = read_one_file(name)
+            GList.append(G1)
+        GHist.append(GList)
+        
+    All_G = []
+    for snap in range (FirstSnap, LastSnap+1):
+        G_snap = []
+        for filenr in range(len(GHist[snap])):
+        #for filenr in ([0]):
+            for tree in range(len(GHist[snap][filenr])):
+            #for tree in ([0]):
+                G_snap.extend(GHist[snap][filenr][tree])
+        G_snap = np.array(G_snap)
+        G_snap = G_snap.view(np.recarray)
+        All_G.append(G_snap)
+    
+    return All_G
+#-----------------------------------------------------------------------------------
+
+def read_redshift_list_in(redshift, firstfile, lastfile, directory, filename):
+
+    FirstSnap = 0
+    LastSnap = len(redshift) - 1
+    snapshot = list(range(len(redshift)-1, -1, -1))
     Galdesc = galdtype()
     GHist = []
     GalsPerTree = []
@@ -94,18 +127,16 @@ def read_redshift_list(redshift, directory, filename):
             GList.append(G1)
         GHist.append(GList)
     return GHist
-
+    
 #-----------------------------------------------------------------------------------
     
-def mass_metal_history(redshift, directory, filename):
+def mass_metal_history(redshift, firstfile, lastfile, directory, filename):
 
-    firstfile = 0
-    lastfile = 7
     FirstSnap = 0
     LastSnap = len(redshift) - 1
     snapshot = list(range(len(redshift)-1, -1, -1))
         
-    GHist = read_redshift_list(redshift, directory, filename)
+    GHist = read_redshift_list_in(redshift, firstfile, lastfile, directory, filename)
     ID_central_bulge = []
     ID_satellite_bulge = []
     ID_central_disk = []
@@ -202,7 +233,7 @@ def mass_metal_history(redshift, directory, filename):
     
     print("Constructing mass history of snapshot:")
     for snap in range(len(redshift)):
-        print(snap, "of", len(redshift))
+        print(snap, "/", len(redshift)-1)
         metal = np.zeros(len(index))
         allmass = np.zeros(len(index))
         if len(All_G[snap]) != 0:
@@ -374,9 +405,10 @@ def SED(lookbacktime, MassHist, MetalHist):
     n_metal_hist[t4, m4] = metallicity[3]
     n_metal_hist[t5, m5] = metallicity[4]
     n_metal_hist[t6, m6] = metallicity[5]
-
+    
+    print('Snapshot number ')
     for i in range(len(lookback) - 1):
-        print('Snapshot number ', i, "from", len(lookback) - 1)
+        print(i, "/", len(lookback) - 2)
         delta_mass = new_mass_hist[i] - new_mass_hist[i+1]
         deltamass = np.reshape(delta_mass, (-1, 1))
 
