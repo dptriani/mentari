@@ -305,7 +305,7 @@ def mass_metal_history(redshift, firstfile, lastfile, directory, filename):
     
 def SED(lookbacktime, MassHist, MetalHist):
 
-    f = open("bc2003_hr_m22_chab_ssp.ised_ASCII", "r")
+    f = open("files/bc2003_hr_m22_chab_ssp.ised_ASCII", "r")
     M1 = []
     for elem in f.read().split():
         try:
@@ -314,7 +314,7 @@ def SED(lookbacktime, MassHist, MetalHist):
             pass
     f.close()
 
-    f = open("bc2003_hr_m32_chab_ssp.ised_ASCII", "r")
+    f = open("files/bc2003_hr_m32_chab_ssp.ised_ASCII", "r")
     M2 = []
     for elem in f.read().split():
         try:
@@ -323,7 +323,7 @@ def SED(lookbacktime, MassHist, MetalHist):
             pass
     f.close()
 
-    f = open("bc2003_hr_m42_chab_ssp.ised_ASCII", "r")
+    f = open("files/bc2003_hr_m42_chab_ssp.ised_ASCII", "r")
     M3 = []
     for elem in f.read().split():
         try:
@@ -332,7 +332,7 @@ def SED(lookbacktime, MassHist, MetalHist):
             pass
     f.close()
 
-    f = open("bc2003_hr_m52_chab_ssp.ised_ASCII", "r")
+    f = open("files/bc2003_hr_m52_chab_ssp.ised_ASCII", "r")
     M4 = []
     for elem in f.read().split():
         try:
@@ -341,7 +341,7 @@ def SED(lookbacktime, MassHist, MetalHist):
             pass
     f.close()
 
-    f = open("bc2003_hr_m62_chab_ssp.ised_ASCII", "r")
+    f = open("files/bc2003_hr_m62_chab_ssp.ised_ASCII", "r")
     M5 = []
     for elem in f.read().split():
         try:
@@ -350,7 +350,7 @@ def SED(lookbacktime, MassHist, MetalHist):
             pass
     f.close()
 
-    f = open("bc2003_hr_m72_chab_ssp.ised_ASCII", "r")
+    f = open("files/bc2003_hr_m72_chab_ssp.ised_ASCII", "r")
     M6 = []
     for elem in f.read().split():
         try:
@@ -406,7 +406,7 @@ def SED(lookbacktime, MassHist, MetalHist):
     n_metal_hist[t5, m5] = metallicity[4]
     n_metal_hist[t6, m6] = metallicity[5]
     
-    print('Snapshot number ')
+    print('Building SED')
     for i in range(len(lookback) - 1):
         print(i, "/", len(lookback) - 2)
         delta_mass = new_mass_hist[i] - new_mass_hist[i+1]
@@ -423,7 +423,7 @@ def SED(lookbacktime, MassHist, MetalHist):
 def read_filters():
      
     F = type('', (), {})
-    F.wavelength, F.response = np.loadtxt('allfilters.dat', unpack=True)
+    F.wavelength, F.response = np.loadtxt('filters/allfilters.dat', unpack=True)
     F.Johnson_V_wave = F.wavelength[0:24]
     F.Johnson_V = F.response[0:24]
     F.Johnson_U_wave = F.wavelength[24:49]
