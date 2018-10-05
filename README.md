@@ -57,14 +57,14 @@ building SED from a tabulated mass and metal history of galaxy(es) in each lookb
 * `mass` : an array containing mass(es) of galaxy(es) in Msun
 * `metal` : metallicities of galaxy(es)
 #### output:
-* wavelength : a list of wavelength in Angstorm
-* spectra :  luminosity of galaxy(es) in each wavelength in Lsun/Angstorm
+* `wavelength` : a list of wavelength in Angstorm
+* `spectra` :  luminosity of galaxy(es) in each wavelength in Lsun/Angstorm
 
 #### `mab(wavelength, spectra, filter_list, z)`
 ##### input :
-* wavelength : list of wavelength in Angstorm
-* spectra : luminosity of galaxy(es) in each wavelength in Lsun/Angstorm
-* filter list : a list containing the name of filters (please refer to `list of filters` for the naming convention)
-* z : a redshift (0 for absolute magnitude, other for apparent)
+* `wavelength` : list of wavelength in Angstorm
+* `spectra` : luminosity of galaxy(es) in each wavelength in Lsun/Angstorm
+* `filter list` : a list containing the name of filters (please refer to `list of filters` for the naming convention)
+* `z` : a redshift (0 for absolute magnitude, other for apparent)
 ##### output :
-* mab : a list of magnitudes in each filters
+* `mab` : a list of magnitudes in each filters
