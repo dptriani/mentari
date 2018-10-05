@@ -423,7 +423,7 @@ def SED(lookbacktime, MassHist, MetalHist):
 def read_filters():
      
     F = type('', (), {})
-    F.wavelength, F.response = np.loadtxt('filters/allfilters.dat', unpack=True)
+    F.wavelength, F.response = np.loadtxt('files/allfilters.dat', unpack=True)
     F.Johnson_V_wave = F.wavelength[0:24]
     F.Johnson_V = F.response[0:24]
     F.Johnson_U_wave = F.wavelength[24:49]
