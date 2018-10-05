@@ -26,7 +26,7 @@ specifically from simulated galaxies from SAGE https://github.com/darrencroton/s
 
 ### List of Functions:
 
-#### `read_redshift_list(redshift, firstfile, lastfile, directory, filename)` : 
+#### * `read_redshift_list(redshift, firstfile, lastfile, directory, filename)` : 
 read the properties of all galaxies from the output of SAGE
 ##### Input:
 * `redshift` : a list of redshift of SAGE output.
@@ -36,7 +36,8 @@ read the properties of all galaxies from the output of SAGE
 * `filename` : specific filename of SAGE output, default: model
 ##### Output:
 * `G` : a `m * n` dimension array containing the properties of galaxies. `m` is the number of redshift listed, `n is the number of galaxies in that redshift`
-#### `mass_metal_history(redshift, firstfile, lastfile, directory, filename)` :
+
+#### * `mass_metal_history(redshift, firstfile, lastfile, directory, filename)` :
 build mass history and metal history from the output of SAGE
 
 ##### Input:
@@ -50,7 +51,7 @@ build mass history and metal history from the output of SAGE
 * `mass` : mass of each galaxies in each redshift listed in 10^10 Msun/h. The order of the redshift will be reversed (the first element of this array is for the last redshift value in redshift list)
 * `metal` : metallicity of each galaxies in each redshift listed. The order of the redshift will be reversed (the first element of this array is for the last redshift value in redshift list)
 
-#### `SED(lookbacktime, mass, metal)`:
+#### * `SED(lookbacktime, mass, metal)`:
 building SED from a tabulated mass and metal history of galaxy(es) in each lookback time
 ##### input :
 * `lookbacktime` : a list lookback time in year
@@ -60,7 +61,7 @@ building SED from a tabulated mass and metal history of galaxy(es) in each lookb
 * `wavelength` : a list of wavelength in Angstorm
 * `spectra` :  luminosity of galaxy(es) in each wavelength in Lsun/Angstorm
 
-#### `mab(wavelength, spectra, filter_list, z)`
+#### * `mab(wavelength, spectra, filter_list, z)`
 ##### input :
 * `wavelength` : list of wavelength in Angstorm
 * `spectra` : luminosity of galaxy(es) in each wavelength in Lsun/Angstorm
