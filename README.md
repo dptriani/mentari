@@ -11,6 +11,7 @@ Otherwise download it as a zip file [here](https://github.com/dptriani/sage-sed/
 ## Contents
 * `files`: contains the filters wavelength and response file obtained from [FSPS](https://github.com/cconroy20/fsps/blob/master/data/allfilters.dat)
 and the SSP tables from [Bruzual and Charlot (2003)](http://www.bruzual.org/bc03/).
+* `mini-millennium`: contains the results of [sage](https://github.com/darrencroton/sage) run to mini-millennium N-Body simulations.
 * `list of filters`: list of filters provided. When specifying filters to compute the AB magnitude, please refer to the
 name format in this list.
 * `SED.py`: the main module.
