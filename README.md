@@ -3,7 +3,7 @@
 If you have git installed, sage-sed can be obtained with the following commands: 
 ```
 cd /path/to/desired/location/
-git clone https://github.com/dptriani/sage-sed
+git clone https://github.com/dptriani/mentari
 ```
 
 Otherwise download it as a zip file [here](https://github.com/dptriani/sage-sed/archive/master.zip) and then unzip it. 
