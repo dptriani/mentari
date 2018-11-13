@@ -76,7 +76,7 @@ def read_one_file(name):
 
 #-----------------------------------------------------------------------------------
     
-def read_redshift_list(redshift, firstfile, lastfile, directory, filename):
+def read_properties(redshift, firstfile, lastfile, directory, filename):
 
     FirstSnap = 0
     LastSnap = len(redshift) - 1
@@ -109,7 +109,7 @@ def read_redshift_list(redshift, firstfile, lastfile, directory, filename):
     return All_G
 #-----------------------------------------------------------------------------------
 
-def read_redshift_list_in(redshift, firstfile, lastfile, directory, filename):
+def read_properties_in(redshift, firstfile, lastfile, directory, filename):
 
     FirstSnap = 0
     LastSnap = len(redshift) - 1
@@ -130,13 +130,13 @@ def read_redshift_list_in(redshift, firstfile, lastfile, directory, filename):
     
 #-----------------------------------------------------------------------------------
     
-def mass_metal_history(redshift, firstfile, lastfile, directory, filename):
+def build_history(redshift, firstfile, lastfile, directory, filename):
 
     FirstSnap = 0
     LastSnap = len(redshift) - 1
     snapshot = list(range(len(redshift)-1, -1, -1))
         
-    GHist = read_redshift_list_in(redshift, firstfile, lastfile, directory, filename)
+    GHist = read_properties_in(redshift, firstfile, lastfile, directory, filename)
     ID_central_bulge = []
     ID_satellite_bulge = []
     ID_central_disk = []
@@ -303,7 +303,7 @@ def mass_metal_history(redshift, firstfile, lastfile, directory, filename):
     return masshist, metalhist
 #=========================================================================================
     
-def SED(lookbacktime, MassHist, MetalHist):
+def generate_SED(lookbacktime, MassHist, MetalHist):
 
     f = open("files/bc2003_hr_m22_chab_ssp.ised_ASCII", "r")
     M1 = []
