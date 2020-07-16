@@ -1,4 +1,7 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import pylab as plt
 Hubble_h = 0.73
 
 def galdtype():
@@ -778,4 +781,64 @@ def mab(wavelength, luminosity, filter_list, z):
     	mab_list.append(mab)
     return(mab_list)
     
+#-----------------------------------------------------------------------------------
+
+def plot_LF(mab, BoxSize, Hubble_h):
+
+	#plt.figure()
+	#plt.subplot(111)
+	mi = -30
+	ma = -15
+	binwidth = 0.3
+	NB = int((ma-mi) / binwidth)
+	
+	counts, binedges = np.histogram(mab, range=(mi, ma), bins=NB)
+	xaxeshisto = binedges[:-1] + 0.5 * binwidth
+	plt.plot(xaxeshisto, counts/ ((BoxSize/Hubble_h)**3) / binwidth)
+	#plt.yscale('log', nonposy='clip')
+        #plt.ylabel(r'$\phi\ (\mathrm{Mpc}^{-3}\ \mathrm{dex}^{-1})$') 
+        #plt.xlabel(r'$M_r$')
+	#plt.savefig('LF_r.png')
+	#plt.close()
 #=========================================================================================
+
+
+# The code below is executed with "python mentari.py"
+if __name__ == '__main__':
+
+	BoxSize = 62.5	
+	Hubble_h = 0.73
+	rec_frac = 0.43
+
+	firstfile = 0
+	lastfile = 7
+	directory = 'mini-millennium/' #change this to the output directory of sage
+	filename = 'model'
+	redshift = [127.000, 79.998, 50.000, 30.000, 19.916, 18.244, 16.725, 15.343, 14.086, 12.941, 11.897, 10.944, 10.073, 9.278, 8.550, 7.883, 7.272, 6.712, 6.197, 5.724, 5.289, 4.888, 4.520, 4.179, 3.866, 3.576, 3.308, 3.060, 2.831, 2.619, 2.422, 2.239, 2.070, 1.913, 1.766, 1.630, 1.504, 1.386, 1.276, 1.173, 1.078, 0.989, 0.905, 0.828, 0.755, 0.687, 0.624, 0.564, 0.509, 0.457, 0.408, 0.362, 0.320, 0.280, 0.242, 0.208, 0.175, 0.144, 0.116, 0.089, 0.064, 0.041, 0.020, 0.000] #from SAGE
+
+	age = np.asarray([0.0124, 0.0246, 0.0491, 0.1037, 0.1871, 0.2120, 0.2399, 0.2709, 0.3054, 0.3438, 0.3864, 0.4335, 0.4856, 0.5430, 0.6062, 0.6756, 0.7517, 0.8349, 0.9259, 1.0249, 1.1327, 1.2496, 1.3763, 1.5131, 1.6606, 1.8192, 1.9895, 2.1717, 2.3662, 2.5734, 2.7934, 3.0265, 3.2726, 3.5318, 3.8038, 4.0886, 4.3856, 4.6944, 5.0144, 5.3488, 5.6849, 6.0337, 6.3901, 6.7531, 7.1215, 7.4940, 7.8694, 8.2464, 8.6238, 9.0004, 9.3750, 9.7463, 10.1133, 10.4750, 10.8303, 11.1783, 11.5181, 11.8490, 12.1702, 12.4811, 12.7810, 13.0695, 13.3459, 13.6098])
+	lookbacktime = sorted((np.array([13.6098]*len(age)) - age) * 1.e9)
+	filter_list = ('Sdss_u', 'Sdss_g')
+	z = 0.
+
+	#building mass and metallicity history necessary for constructing SED
+	mass, metal = build_history(redshift, firstfile, lastfile, directory, filename)
+
+	#compute the right mass using recycle fraction and hubble constant
+	mass = mass * (1 - rec_frac) / Hubble_h
+
+	#construct SED and ab magnitude of all galaxies in listed filters
+	wavelength, total_lum = generate_SED(lookbacktime, mass, metal)
+	mab_list = mab(wavelength, total_lum, filter_list, z)
+
+	#plot the luminosity functions (example: in SDSS r band)
+	plt.figure()
+	plt.subplot(111)	
+	
+	for i in range(len(filter_list)):
+		plot_LF(mab_list[i], BoxSize, Hubble_h)
+	plt.yscale('log', nonposy='clip')
+	plt.ylabel(r'$\phi\ (\mathrm{Mpc}^{-3}\ \mathrm{dex}^{-1})$')
+	plt.xlabel(r'$M$')
+	plt.savefig('LF.png')
+	plt.close()
