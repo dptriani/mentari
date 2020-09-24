@@ -1,10 +1,11 @@
+from __future__ import print_function
 from random import sample, seed
 import copy
 from astropy.cosmology import FlatLambdaCDM
 cosmo = FlatLambdaCDM(H0=73, Om0=0.25)
-from __future__ import print_function
 from os.path import dirname, abspath, join as pjoin
 import re, os
+import numpy as np
 
 def galdtype_dusty(align=True):
      
@@ -189,12 +190,13 @@ def iterate_trees(SAM_option, directory):
         for redshift in redshift_strings:
             fn = 'model_z%s_%s' % (redshift, group)
             files.append(open(os.path.join(directory, fn), 'rb'))
-
+            
         n_trees = [np.fromfile(f, np.uint32, 1)[0] for f in files][0]
         n_gals = [np.fromfile(f, np.uint32, 1)[0] for f in files]
         chunk_sizes = [np.fromfile(f, np.uint32, n_trees) for f in files]
-        tree_sizes = sum(chunk_sizes, axis=0)
-        
+        tree_sizes = np.sum(chunk_sizes, axis=0)
+        #tree_sizes = sum(chunk_sizes)
+
         for ii in range(n_trees):
             tree_size = tree_sizes[ii]
             tree = np.empty(tree_size, dtype=Galdesc_false)
@@ -225,8 +227,9 @@ def iterate_trees(SAM_option, directory):
             assert bool(np.all(tree['GalaxyIndex'][ind] ==
                             tree['CentralGalaxyIndex'][ind])), \
                 "Central Galaxy Index must equal Galaxy Index for centrals"
-
+            
             yield tree
+        
             
         for file in files:
             file.close()
@@ -273,9 +276,10 @@ def calculate_mass_and_metals(SAM_choice, tree, snap_limit):
         delta_bulge_dust = tree['SfrBulgeDTG'] * tree['SfrBulge'] * tree['dT'] * 1.e6 * (1.0 - recycle_fraction)
         delta_disk_dust = tree['SfrDiskDTG'] * tree['SfrDisk'] * tree['dT'] * 1.e6 * (1.0 - recycle_fraction)
         delta_metals = delta_bulge_metals + delta_disk_metals + delta_bulge_dust + delta_disk_dust
+        
     else:
         print("Choose a SAM: 0 - for SAGE, 1 - for Dusty-SAGE")
-	raise AssertionError()
+        raise AssertionError()
     
     unique_ID = np.unique(all_gal_ID)
     mass = np.zeros((len(unique_ID), max(snapshot_nr)+1))
@@ -286,7 +290,7 @@ def calculate_mass_and_metals(SAM_choice, tree, snap_limit):
     for kk, gal_ID in enumerate(unique_ID):
         instant_mass = 0.0
         instant_metals = 0.0
-	# np.where(all_gal_ID
+    # np.where(all_gal_ID
         for ii, ID in enumerate(all_gal_ID[sorted_idx]):
             if(gal_ID == ID):
                 instant_mass += delta_mass[sorted_idx[ii]] 
@@ -428,8 +432,8 @@ def generate_SED(SSP, Age, MassHist, MetalHist):
         FileNames = ["files/bc2003_hr_m22_chab_ssp.ised_ASCII", "files/bc2003_hr_m32_chab_ssp.ised_ASCII",
                 "files/bc2003_hr_m42_chab_ssp.ised_ASCII", "files/bc2003_hr_m52_chab_ssp.ised_ASCII", 
                 "files/bc2003_hr_m62_chab_ssp.ised_ASCII", "files/bc2003_hr_m72_chab_ssp.ised_ASCII"]
-
-        for i in range(len(files)):
+        AllFiles = []
+        for i in range(len(FileNames)):
             AllFiles.append(open_file(FileNames[i]))
         
         File1 = AllFiles[0]
@@ -910,7 +914,7 @@ def compute_mab(wavelength, luminosity, filter_list, z):
     for i in range(len(filter_list)):
     	filters_wave = eval('F.' + filter_list[i] + '_wave')
     	filters = eval('F.' + filter_list[i])
-    	mab = compute_mab_individual(wavelength, luminosity, filters_wave, filters, z)
+    	mab = compute_individual_mab(wavelength, luminosity, filters_wave, filters, z)
     	mab_list.append(mab)
     return(mab_list)
 #-----------------------------------------------------------------------------------	
