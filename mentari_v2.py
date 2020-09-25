@@ -148,7 +148,7 @@ def galdtype(align=True):
     return Galdesc
 
 #-----------------------------------------------------------------------------------	
-def iterate_trees(SAM_option, directory):
+def iterate_trees(SAM_option, directory, firstfile, lastfile):
     '''
     Iterating trees from the simulation output.
     Currently, it can only read trees from SAGE (Croton et al. 2006, 2016)
@@ -169,10 +169,10 @@ def iterate_trees(SAM_option, directory):
     entries = [e for e in entries if e.startswith('model_z')]
     redshift_strings = list(set([re.match(r'model_z(\d+\.?\d*)_\d+', e).group(1)
                                 for e in entries]))
-    group_strings = list(set([re.match(r'model_z\d+\.?\d*_(\d+)', e).group(1)
-                            for e in entries]))
+    #group_strings = list(set([re.match(r'model_z\d+\.?\d*_(\d+)', e).group(1)
+    #                        for e in entries]))
     
-    group_strings.sort(key=lambda x: int(x))
+    #group_strings.sort(key=lambda x: int(x))
     redshift_strings.sort(key=lambda x: float(x), reverse=True)
     
     if SAM_option == 0:
@@ -185,7 +185,8 @@ def iterate_trees(SAM_option, directory):
         print("Choose a SAM: 0 - for SAGE, 1 - for Dusty-SAGE")
     
     #open files
-    for group in group_strings:
+    #for group in group_strings:
+    for group in range(firstfile, lastfile+1):
         files = []
         for redshift in redshift_strings:
             fn = 'model_z%s_%s' % (redshift, group)
@@ -363,7 +364,7 @@ def calculate_mass_and_metals(SAM_choice, tree, snap_limit):
                 
     return mass, metals
 #-----------------------------------------------------------------------------------	
-def build_mass_and_metallicity_history(SAM_choice, directory, snap_limit):
+def build_mass_and_metallicity_history(SAM_choice, directory, firstfile, lastfile, snap_limit):
     '''
     Build mass and metallicity history from the output directory of dusty-sage
     Input:  - SAM_choice (int): (0) SAGE (1) Dusty-SAGE
@@ -377,7 +378,7 @@ def build_mass_and_metallicity_history(SAM_choice, directory, snap_limit):
     Mass = []
     Metals = []
 
-    for tree in iterate_trees(SAM_choice, directory):
+    for tree in iterate_trees(SAM_choice, directory, firstfile, lastfile):
         mass, metal = calculate_mass_and_metals(SAM_choice, tree, snap_limit)
         Mass.extend(mass)
         Metals.extend(metal)
