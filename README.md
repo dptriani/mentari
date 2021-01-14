@@ -1,6 +1,8 @@
 # mentari
+Mentari is a python-pipeline that construct SED from galaxy evolution models.
+
 ## Installation
-If you have git installed, sage-sed can be obtained with the following commands: 
+If you have git installed, mentari can be obtained with the following commands: 
 ```
 cd /path/to/desired/location/
 git clone https://github.com/dptriani/mentari
