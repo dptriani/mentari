@@ -428,59 +428,55 @@ def generate_SED(SSP, Age, MassHist, MetalHist):
     '''
     
     #SSP = 0 (Bruzual & Charlot 2003 -- BC03)
-    if (SSP == 0): 
-        
-        FileNames = ["files/bc2003_hr_m22_chab_ssp.ised_ASCII", "files/bc2003_hr_m32_chab_ssp.ised_ASCII",
-                "files/bc2003_hr_m42_chab_ssp.ised_ASCII", "files/bc2003_hr_m52_chab_ssp.ised_ASCII", 
-                "files/bc2003_hr_m62_chab_ssp.ised_ASCII", "files/bc2003_hr_m72_chab_ssp.ised_ASCII"]
-        AllFiles = []
-        for i in range(len(FileNames)):
-            AllFiles.append(open_file(FileNames[i]))
-        
-        File1 = AllFiles[0]
-        lookback = File1[1:222]
-        wavelength = File1[236: 7136]
-        metallicity = [0.0001, 0.0004, 0.004, 0.008, 0.02, 0.05] #metallicity grid in BC03
-        time_grid = 221
-        wave_grid = 6900
-        lum = np.zeros((len(AllFiles), time_grid, wave_grid))
+    FileNames = ["files/bc2003_hr_m22_chab_ssp.ised_ASCII", "files/bc2003_hr_m32_chab_ssp.ised_ASCII",
+            "files/bc2003_hr_m42_chab_ssp.ised_ASCII", "files/bc2003_hr_m52_chab_ssp.ised_ASCII", 
+            "files/bc2003_hr_m62_chab_ssp.ised_ASCII", "files/bc2003_hr_m72_chab_ssp.ised_ASCII"]
 
-        for j in range(len(metallicity)):
-            File = AllFiles[j]
-            for i in range(time_grid):
-                lum[j][i] = File[7137 + (wave_grid+54)*i: 7137 + (wave_grid+54)*i + 6900]
-    else:
-        print("No valid SSP selected.")
-        return()
-      
+    AllFiles = []
+    for i in range(len(FileNames)):
+        AllFiles.append(open_file(FileNames[i]))
+
+    File1 = AllFiles[0]
+    lookback = np.array(File1[1:222])
+    wavelength = np.array(File1[236: 7136])
+    metallicity = [0.0001, 0.0004, 0.004, 0.008, 0.02, 0.05] #metallicity grid in BC03
+    time_grid = 221
+    wave_grid = 6900
+    lum = np.zeros((len(AllFiles), time_grid, wave_grid))
+
+    for j in range(len(metallicity)):
+        File = AllFiles[j]
+        for i in range(time_grid):
+            lum[j][i] = File[7137 + (wave_grid+54)*i: 7137 + (wave_grid+54)*i + 6900]
+
     #Check if all mass and metal history have the same number of timestep
     if(len(MassHist) > 1):
         for i in range(len(MassHist)):
             if len(MassHist[i]) != len(MassHist[0]):
                 print("Not all galaxies have mass history at snapshot=",i)
-                return()
             if len(MetalHist[i]) != len(MetalHist[0]):
                 print("Not all galaxies have metal history at snapshot=", i)
-                return()
-    
+
+    w = np.where(lookback < 10**7)[0]
+
     if(len(MassHist) > 1):
         gal_number = len(MassHist)
     else:
         gal_number = 1
-        
+
     new_mass_hist = np.zeros((time_grid, gal_number))
     new_metal_hist = np.zeros((time_grid, gal_number))
 
-#   Build new mass and metal history based on the lookback time of BC03
+    #   Build new mass and metal history based on the lookback time of BC03
     for i in range(gal_number):
         lookbacktime = age_to_lookback(Age)
         sorted_lbtime = sorted(lookbacktime)
-        
+
         temp_mass_list = list(MassHist[i])
         temp_metal_list = list(MetalHist[i])
         temp_mass_list.reverse()
         temp_metal_list.reverse()
-        
+
         new_mass_hist[:,i] = np.interp(lookback, sorted_lbtime, temp_mass_list) 
         new_metal_hist[:,i] = np.interp(lookback, sorted_lbtime, temp_metal_list) 
 
@@ -488,30 +484,49 @@ def generate_SED(SSP, Age, MassHist, MetalHist):
     half_metal = [0] * (len(metallicity) - 1)
     for i in range(len(half_metal)):
         half_metal[i] = (metallicity[i] + metallicity[i+1]) / 2
-    
+
     print('Building SED')
     total_lum = np.zeros((gal_number, wave_grid))
+    total_lum_dusty = np.zeros((gal_number, wave_grid))
+
+    tau_head_ISM = 0.3
+    tau_head_BC = 1
+    eta = -0.7
+    tau_ISM = compute_tau(tau_head_ISM, eta, wavelength)
+    tau_BC = tau_ISM + compute_tau(tau_head_BC, eta, wavelength)
+
     for i in range(len(lookback) - 1):
-        if i%30 == 0:
+        if i%22 == 0:
             print(int(i*100/219),'%',end = '')
         else: 
             print('.',end = '')
         #print("Timestep", i, "/", len(lookback) - 2)
         delta_mass = new_mass_hist[i] - new_mass_hist[i+1]
         deltamass = np.reshape(delta_mass, (-1, 1))
-        
+
         w1 = np.where(new_metal_hist[i] < half_metal[0])[0]
         total_lum[w1] += deltamass[w1] * lum[0][i]
-        
+
         for j in range(len(half_metal)-1):
             w2 = np.where((new_metal_hist[i] > half_metal[j]) & (new_metal_hist[i] <= half_metal[j+1]))[0]
             total_lum[w2] += deltamass[w2] * lum[j+1][i]
-            
+
         w3 = np.where(new_metal_hist[i] > half_metal[-1])[0]
         total_lum[w3] += deltamass[w3] * lum[-1][i]
+
+
+        #birthcloud extinction
+        if (lookback[i] < 10**7):
+            total_lum_dusty = total_lum * np.e**(-tau_BC)
+        else:
+            total_lum_dusty = total_lum * np.e**(-tau_ISM)
         
-    return wavelength, total_lum
+    return wavelength, total_lum, total_lum_dusty
 #-----------------------------------------------------------------------------------	
+def compute_tau(tau_head, eta, wavelength):
+    return(tau_head * (wavelength/5500)**eta)
+#-----------------------------------------------------------------------------------	
+
 def age_to_lookback(age): #age in Gyr, lookback in yr
     
     '''
