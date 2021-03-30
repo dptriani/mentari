@@ -160,7 +160,7 @@ def iterate_trees(SAM_option, directory, firstfile, lastfile):
               X.XXX : redshift of the snapshot
               Y : file number
     
-    Output: a tree, consist of properties of galaxies listed in galdtype_dusty()
+    Output: a tree, consist of properties of galaxies listed in galdtype_dusty() for Dusty SAGE or galdtype() for SAGE
     '''
     
     #define variables
@@ -196,8 +196,7 @@ def iterate_trees(SAM_option, directory, firstfile, lastfile):
         n_gals = [np.fromfile(f, np.uint32, 1)[0] for f in files]
         chunk_sizes = [np.fromfile(f, np.uint32, n_trees) for f in files]
         tree_sizes = np.sum(chunk_sizes, axis=0)
-        #tree_sizes = sum(chunk_sizes)
-
+        
         for ii in range(n_trees):
             tree_size = tree_sizes[ii]
             tree = np.empty(tree_size, dtype=Galdesc_false)
@@ -247,10 +246,11 @@ def calculate_mass_and_metals(SAM_choice, tree, snap_limit):
     Input:  - SAM_choice (int): (0) SAGE (1) Dusty-SAGE
             - a tree yielded by iterate_tree(directory)
             - snap_limit (int) -- last snapshot of the tree
-    Output: 2-dimensions array.
-            1st array: Stellar mass history of the tree (in h*Msun)
-            2nd array: Stellar metallicity history (no unit)
-            Both arrays consists of a number of snapshot, ascending with increasing age of Universe.
+    Output: 3-dimensions array.
+            1st array (1xM)*: Stellar mass history of the tree (in Msun/h)
+            2nd array (1xM)*: Stellar metallicity history (no unit)
+
+    *M is the number of snapshot, ascending with increasing age of Universe.
     """
     
     recycle_fraction = 0.43
@@ -277,21 +277,18 @@ def calculate_mass_and_metals(SAM_choice, tree, snap_limit):
         delta_bulge_dust = tree['SfrBulgeDTG'] * tree['SfrBulge'] * tree['dT'] * 1.e6 * (1.0 - recycle_fraction)
         delta_disk_dust = tree['SfrDiskDTG'] * tree['SfrDisk'] * tree['dT'] * 1.e6 * (1.0 - recycle_fraction)
         delta_metals = delta_bulge_metals + delta_disk_metals + delta_bulge_dust + delta_disk_dust
-        
     else:
         print("Choose a SAM: 0 - for SAGE, 1 - for Dusty-SAGE")
-        raise AssertionError()
     
     unique_ID = np.unique(all_gal_ID)
     mass = np.zeros((len(unique_ID), max(snapshot_nr)+1))
     metals = np.zeros((len(unique_ID), max(snapshot_nr)+1))
+    dust = np.zeros((len(unique_ID), max(snapshot_nr)+1))
     
     #map descendant and build mass and metal history
-    #AVOID LOOPS!! -- note for next development
     for kk, gal_ID in enumerate(unique_ID):
         instant_mass = 0.0
         instant_metals = 0.0
-    # np.where(all_gal_ID
         for ii, ID in enumerate(all_gal_ID[sorted_idx]):
             if(gal_ID == ID):
                 instant_mass += delta_mass[sorted_idx[ii]] 
@@ -301,7 +298,7 @@ def calculate_mass_and_metals(SAM_choice, tree, snap_limit):
                 instant_metals += delta_metals[sorted_idx[ii]]
                 metals[kk][snapshot_nr[sorted_idx[ii]]] = instant_metals
                 assert metals[kk][snapshot_nr[sorted_idx[ii]]] >= metals[kk][snapshot_nr[sorted_idx[ii-1]]]
-    
+                
     
     #make sure the mass and metals are increasing with snapshot_nr   
     for i in range(len(unique_ID)):
@@ -358,12 +355,99 @@ def calculate_mass_and_metals(SAM_choice, tree, snap_limit):
                 #the metals as well
                 metals[satellite_idx] = np.zeros(max(snapshot_nr)+1)
                 
+
         #Finally, divide total metals to total mass:
         w = np.where((metals[:,snap] !=0) & (mass[:,snap] != 0))[0]
         metals[w,snap] = metals[w,snap] / mass[w,snap]
                 
     return mass, metals
 #-----------------------------------------------------------------------------------	
+def calculate_dust_density (tree):
+    """Calculate mass history from Dusty-SAGE tree.
+    In one fly, it will calculate the mass and metals history of a tree while mapping
+    the descendant.
+    
+    Input:  - SAM_choice (int): (0) SAGE (1) Dusty-SAGE
+            - a tree yielded by iterate_tree(directory)
+            - snap_limit (int) -- last snapshot of the tree
+    Output: 4 variable.
+            1st variable: Dust mass history (Msun/h)
+            2nd variable: Gas phase metal mass history (Msun/h)
+            3rd variable: Cold gas mass history (Msun/h)
+            4th variable: Disk scale radius history (Mpc/h)
+    """
+    
+    sorted_idx = np.argsort(tree, order=('GalaxyIndex', 'SnapNum'))
+    all_gal_ID = tree['GalaxyIndex']
+    snapshot_nr = tree['SnapNum']
+    merge_idx = tree['mergeIntoID']
+    merge_snapshot = tree['mergeIntoSnapNum']
+    merge_type = tree['mergeType']
+    
+    instant_dust = tree['ColdDust'] * 1e10
+    instant_metals = tree['MetalsColdGas'] * 1e10
+    instant_gas = tree['ColdGas'] * 1e10
+    instant_rad = tree['DiskRadius'] #in Mpc
+    
+    unique_ID = np.unique(all_gal_ID)
+    dust = np.zeros((len(unique_ID), max(snapshot_nr)+1))
+    gas_metals = np.zeros((len(unique_ID), max(snapshot_nr)+1))
+    gas = np.zeros((len(unique_ID), max(snapshot_nr)+1))
+    rad = np.zeros((len(unique_ID), max(snapshot_nr)+1))
+    
+    #map descendant and build mass and metal history
+    for kk, gal_ID in enumerate(unique_ID):
+        for ii, ID in enumerate(all_gal_ID[sorted_idx]):
+            if(gal_ID == ID):
+                dust[kk][snapshot_nr[sorted_idx[ii]]] = instant_dust[sorted_idx[ii]]
+                gas_metals[kk][snapshot_nr[sorted_idx[ii]]] = instant_metals[sorted_idx[ii]]
+                gas[kk][snapshot_nr[sorted_idx[ii]]] = instant_gas[sorted_idx[ii]]
+                rad[kk][snapshot_nr[sorted_idx[ii]]] = instant_rad[sorted_idx[ii]]
+    
+    #identify merger and add mass
+    for snap in range(max(snapshot_nr)+1):
+        wsnap = np.where(snapshot_nr == snap)[0]
+        wmerge = np.where((merge_idx[wsnap] != -1) & (merge_snapshot[wsnap] < snap_limit) & (merge_type[wsnap] < 3))[0] #only include major (merge_type=1) and minor (merge_type=2) merger
+        merger_snap = merge_snapshot[wsnap][wmerge]
+        merger_id = merge_idx[wsnap][wmerge]
+        
+        if len(merger_id) > 0:
+            for i, idx in enumerate(merger_id):
+                
+                wmergesnap = np.where(snapshot_nr == merger_snap[i])[0]
+                central_ID = all_gal_ID[wmergesnap][idx]
+                central_idx = np.where(unique_ID[:,None] == central_ID)[0]
+                satellite_ID = all_gal_ID[wsnap][wmerge][i]
+                satellite_idx = np.where(unique_ID[:,None] == satellite_ID)[0]
+                
+                #eliminate the dust of satellite galaxies
+                dust[satellite_idx] = np.zeros(max(snapshot_nr)+1)
+                gas_metals[satellite_idx] = np.zeros(max(snapshot_nr)+1)
+                gas[satellite_idx] = np.zeros(max(snapshot_nr)+1)
+                rad[satellite_idx] = np.zeros(max(snapshot_nr)+1)
+               
+        #null more satellite (from mergetype 3 and 4)
+        wmerge = np.where((merge_idx[wsnap] != -1) & (merge_snapshot[wsnap] < snap_limit) & (merge_type[wsnap] > 2))[0]
+        merger_snap = merge_snapshot[wsnap][wmerge]
+        merger_id = merge_idx[wsnap][wmerge]
+        
+
+        if len(merger_id) > 0:
+            for i, idx in enumerate(merger_id):
+                wmergesnap = np.where(snapshot_nr == merger_snap[i])[0]
+                satellite_ID = all_gal_ID[wsnap][wmerge][i]
+                satellite_idx = np.where(unique_ID[:,None] == satellite_ID)[0]
+                
+                #also the dust
+                dust[satellite_idx] = np.zeros(max(snapshot_nr)+1)
+                gas_metals[satellite_idx] = np.zeros(max(snapshot_nr)+1)
+                gas[satellite_idx] = np.zeros(max(snapshot_nr)+1)
+                rad[satellite_idx] = np.zeros(max(snapshot_nr)+1)
+                
+    return dust, gas_metals, gas, rad
+
+#-----------------------------------------------------------------------------------	
+
 def build_mass_and_metallicity_history(SAM_choice, directory, firstfile, lastfile, snap_limit):
     '''
     Build mass and metallicity history from the output directory of dusty-sage
@@ -388,6 +472,40 @@ def build_mass_and_metallicity_history(SAM_choice, directory, firstfile, lastfil
     
     return(Mass, Metals)
 #-----------------------------------------------------------------------------------	
+
+def build_dust_history(SAM_choice, directory, firstfile, lastfile):
+    '''
+    Build mass and metallicity history from the output directory of dusty-sage
+    Input:  - SAM_choice (int): (0) SAGE (1) Dusty-SAGE
+            - directory (string) -- path to the directory containing dusty-sage output tree
+            - snap_limit (integer) -- number of last snapshot
+            
+    Output: - Dust (array(list(float))) -- an array containing a number of galaxy, each containing mass (in Msun/h) of each snapshot
+            - Gas metals (array(list(float))) -- an array containing a number of galaxy, each containing gas phase metal mass (in Msun/h) of each snapshot
+            - Gas (array(list(float))) -- an array containing a number of galaxy, each containing gas mass (in Msun/h) of each snapshot
+            - Rad (array(list(float))) -- an array containing a number of galaxy, each containing Disk Scale Radius (in Mpc/h) of each snapshot
+    '''
+    Dust = []
+    GasMetals = []
+    Gas = []
+    Rad = []
+    
+    for tree in iterate_trees(SAM_choice, directory, firstfile, lastfile):
+        dust, gas_metal, gas, rad = calculate_dust_density(tree)
+        Dust.extend(dust)
+        GasMetals.extend(gas_metal)
+        Gas.extend(gas)
+        Rad.extend(rad)
+
+    Dust = np.array(Dust)
+    GasMetals = np.array(GasMetals)
+    Gas = np.array(Gas)
+    Rad = np.array(Rad)
+    
+    return(Dust, GasMetals, Gas, Rad)
+
+#-----------------------------------------------------------------------------------	
+
 def open_file(filename):
     
     '''
@@ -409,7 +527,7 @@ def open_file(filename):
     
     return M
 #-----------------------------------------------------------------------------------	
-def generate_SED(SSP, Age, MassHist, MetalHist):
+def generate_SED(SSP, Age, MassHist, MetalHist, tau_head_BC, tau_head_ISM, eta_BC, eta_ISM, time_BC):
     
     '''
     Generate intrinsice (stellar) SED by assembling SSP from BC03.
@@ -476,7 +594,6 @@ def generate_SED(SSP, Age, MassHist, MetalHist):
         temp_metal_list = list(MetalHist[i])
         temp_mass_list.reverse()
         temp_metal_list.reverse()
-
         new_mass_hist[:,i] = np.interp(lookback, sorted_lbtime, temp_mass_list) 
         new_metal_hist[:,i] = np.interp(lookback, sorted_lbtime, temp_metal_list) 
 
@@ -485,21 +602,24 @@ def generate_SED(SSP, Age, MassHist, MetalHist):
     for i in range(len(half_metal)):
         half_metal[i] = (metallicity[i] + metallicity[i+1]) / 2
 
-    print('Building SED')
+    #print('Building SED')
     total_lum = np.zeros((gal_number, wave_grid))
     total_lum_dusty = np.zeros((gal_number, wave_grid))
 
-    tau_head_ISM = 0.3
-    tau_head_BC = 1
-    eta = -0.7
-    tau_ISM = compute_tau(tau_head_ISM, eta, wavelength)
-    tau_BC = tau_ISM + compute_tau(tau_head_BC, eta, wavelength)
-
+    tau_ISM = compute_tau(tau_head_ISM, eta_ISM, wavelength)
+    tau_BC = tau_ISM + compute_tau(tau_head_BC, eta_BC, wavelength)
+    
+    
+    attenuation_factor_BC = e**(-tau_BC)
+    attenuation_factor_ISM = e**(-tau_ISM)
+    
     for i in range(len(lookback) - 1):
+        
         if i%22 == 0:
             print(int(i*100/219),'%',end = '')
         else: 
             print('.',end = '')
+        
         #print("Timestep", i, "/", len(lookback) - 2)
         delta_mass = new_mass_hist[i] - new_mass_hist[i+1]
         deltamass = np.reshape(delta_mass, (-1, 1))
@@ -516,15 +636,466 @@ def generate_SED(SSP, Age, MassHist, MetalHist):
 
 
         #birthcloud extinction
-        if (lookback[i] < 10**7):
-            total_lum_dusty = total_lum * np.e**(-tau_BC)
+        if (lookback[i] < time_BC):
+            total_lum_dusty = total_lum * attenuation_factor_BC
         else:
-            total_lum_dusty = total_lum * np.e**(-tau_ISM)
+            total_lum_dusty = total_lum * attenuation_factor_ISM
         
     return wavelength, total_lum, total_lum_dusty
 #-----------------------------------------------------------------------------------	
 def compute_tau(tau_head, eta, wavelength):
-    return(tau_head * (wavelength/5500)**eta)
+    
+    '''
+    Compute optical depth as a function of wavelength using Charlot and Fall (2000) model
+    
+    Input:  - tau_head (float or array): optical depth at 5500 Angstorm
+            - eta (float or array): power law index
+            - wavelength (array): in Angstorn           
+    Output: - tau (array): the computed optical depth have the same dimension with wavelength. 
+    '''
+
+    
+    if type(tau_head) != float:
+        tau = np.zeros((len(tau_head), len(wavelength)))
+        for i in range(len(tau)):
+            tau[i] = tau_head[i] * (wavelength/5500)**eta[i]
+    else:
+        tau = tau_head * (wavelength/5500)**eta
+
+    return(tau)
+#-----------------------------------------------------------------------------------	
+def compute_area(rad):
+    '''
+    Compute area of a disk (2 * area of a circle)
+    
+    Input:  - rad (float or array): radius
+    Output: - area (float or array): area of a disk for given radius
+    '''
+
+    return (2 * np.pi * rad**2)
+#-----------------------------------------------------------------------------------	
+def compute_tauBC_Trayford(ColdDust, ColdGas, rad):
+    '''
+    Compute optical depth at 5500 A for birth clouds using relation in Trayford+ 19
+    (relation between dust surface density and optical depth)
+    
+    Input:  - ColdDust (float or array): total cold dust mass in the ISM
+            - ColdGas (float or array): total cold gas mass in the ISM
+            - rad (float or array): disk radius
+    Output: - Sigma_BC (float or array): dust surface density in the birth clouds
+            - tau_BC (float or array): optical depth at 5500 A for birth clouds
+    '''
+    
+    fdust = ColdDust / ColdGas
+    ScaleRad = rad * 1e6 #convert to pc
+    halfrad = 1.68 * ScaleRad 
+    threerad = 0.4 * ScaleRad
+    
+    fdust_MW = 0.33
+    Zsun = 0.0189
+    Sigma_MW = 85 #Msun/pc2 
+    
+    #area = compute_area(halfrad)
+    area = compute_area(threerad)
+    Sigma_gas = ColdGas / area
+    w = np.where(Sigma_gas < Sigma_MW)[0]
+    if len(w) > 1:
+        Sigma_gas[w] = Sigma_MW
+    elif len(w) == 1:
+        Sigma_gas = Sigma_MW
+    tau_BC = (fdust * Sigma_gas) / (fdust_MW * Zsun * Sigma_MW)
+    Sigma_BC = np.log10(fdust * Sigma_gas * 1e6) #kpc
+    
+    return Sigma_BC, tau_BC
+
+#-----------------------------------------------------------------------------------	
+def compute_tauISM_Trayford(ColdDust, ColdGas, rad):
+    '''
+    Compute ISM optical depth from relation in Trayford+ 19
+    
+    Input:  - ColdDust (float or array): total cold dust mass in the ISM
+            - ColdGas (float or array): total cold gas mass in the ISM
+            - rad (float or array): disk radius
+    Output: - Sigma_dust (float or array): dust surface density in the diffuse ISM
+            - tau_ISM (float or array): optical depth at 5500 A for diffuse ISM
+    '''
+    ScaleRad = rad * 1e3 #convert to kpc
+    halfrad = 1.68 * ScaleRad
+    threerad = 0.4 * ScaleRad
+    Sigma_MW = 85 * 1e6 #Msun/kpc2
+    
+    Sigma_dust_Trayford = [4.088, 4.351, 4.579, 4.823, 5.057, 5.292, 5.528, 5.765, 6.001, 6.234, 6.470, 6.704, 6.941, 7.177, 7.416]
+    tau_head_Trayford = [0.031, 0.059, 0.078, 0.129, 0.203, 0.308, 0.467, 0.647, 0.838, 1.065, 1.235, 1.475, 1.571, 1.645, 1.806]
+
+    #area = compute_area(halfrad)
+    area = compute_area(threerad)
+        
+    Sigma_dust = np.log10(ColdDust / area)
+    #Sigma_dust = np.log10(fdust * Sigma_gas)
+    tau_ISM = np.interp(Sigma_dust, Sigma_dust_Trayford, tau_head_Trayford)
+    
+    return Sigma_dust, tau_ISM
+
+#-----------------------------------------------------------------------------------	
+
+def compute_etaISM_Trayford(ColdDust, ColdGas, rad):
+    '''
+    Compute powerlaw index for the diffuse ISM component from relation in Trayford+ 19
+    
+    Input:  - ColdDust (float or array): total cold dust mass in the ISM
+            - ColdGas (float or array): total cold gas mass in the ISM
+            - rad (float or array): disk radius
+    Output: - Sigma_dust (float or array): dust surface density in the diffuse ISM
+            - eta_ISM (float or array): powerlaw index for diffuse ISM
+    '''
+
+    ScaleRad = rad * 1e3 #convert to kpc
+    halfrad = 1.68 * ScaleRad
+    threerad = 0.4 * ScaleRad
+    
+    Sigma_dust_Trayford = [4.116, 4.354, 4.588, 4.822, 5.061, 5.293, 5.533, 5.763, 6.003, 6.236, 6.469, 6.706, 6.943, 7.181, 7.411]
+    eta_ISM_Trayford = [-1.379, -1.357, -1.334, -1.243, -1.170, -1.062, -0.922, -0.778, -0.668, -0.570, -0.506, -0.453, -0.381, -0.318, -0.307]
+    #area = compute_area(halfrad)
+    area = compute_area(threerad)
+    
+    Sigma_dust = np.log10(ColdDust / area)
+    #Sigma_dust = np.log10(fdust * Sigma_gas)
+    eta_ISM = np.interp(Sigma_dust, Sigma_dust_Trayford, eta_ISM_Trayford)
+    
+    return Sigma_dust, eta_ISM
+
+#-----------------------------------------------------------------------------------	
+
+def compute_tauISM_Somerville (Dust, Rad):
+    '''
+    Compute ISM optical depth from prescription in Somerville+ 2012
+    
+    Input:  - ColdDust (float or array): total cold dust mass in the ISM
+            - rad (float or array): disk radius
+    Output: - Sigma_dust (float or array): dust surface density in the diffuse ISM
+            - tau_ISM (float or array): optical depth at 5500 A for diffuse ISM
+    '''
+    
+    Chi_gas = 0.42
+    rad_gas = Chi_gas * Rad * 1e6
+    
+    tau_dust_0 = 0.3
+    Sigma = Dust / (rad_gas**2) 
+    tau_ISM = tau_dust_0 * Sigma
+    
+    return(Sigma, tau_ISM)
+
+#-----------------------------------------------------------------------------------	
+
+def compute_tauBC_Somerville (Dust, Rad):
+    
+    '''
+    Compute birth clouds' optical depth from prescription in Somerville+ 2012
+    
+    Input:  - ColdDust (float or array): total cold dust mass in the ISM
+            - rad (float or array): disk radius
+    Output: - Sigma_dust (float or array): dust surface density in the Birth Clouds
+            - tau_ISM (float or array): optical depth at 5500 A for Birth Clouds
+    '''
+    
+    Chi_gas = 0.42
+    rad_gas = Chi_gas * Rad * 1e6
+    
+    tau_dust_0 = 0.3
+    Sigma = Dust / (rad_gas**2)
+    tau_ISM = tau_dust_0 * Sigma
+    
+    mu_BC = 6
+    tau_BC = mu_BC * tau_ISM
+    
+    return (Sigma, tau_BC)
+
+#-----------------------------------------------------------------------------------	
+
+def determine_idx_Rieke(LIR):
+    
+    '''
+    Determine the index of the Dale+ 14 IR template to be used based on the total IR luminosity
+    from the prescription in Rieke+ 09
+    
+    Input:  - LIR (float or array): total IR luminosity
+    Output: - idx (float or array): index of the spectra in the Dale+ 14 IR template
+    '''
+
+    alpha_SF, log_fnu_SF = np.loadtxt('files/alpha.dat', unpack=True)
+    
+    if (LIR > 10**11.6):  
+        LIR = 10**11.6
+
+    alpha = 10.096 - 0.741 * np.log10(LIR)
+
+    delta_alpha = abs(alpha_SF - alpha)
+    idx = np.where(delta_alpha==min(delta_alpha))[0]    
+    return idx
+
+#-----------------------------------------------------------------------------------	
+
+def determine_idx_Marcillac(LIR):
+    '''
+    Determine the index of the Dale+ 14 IR template to be used based on the total IR luminosity
+    from the prescription in Marcillac+ 06
+    
+    Input:  - LIR (float or array): total IR luminosity
+    Output: - idx (float or array): index of the spectra in the Dale+ 14 IR template
+    '''
+
+    alpha_SF, log_fnu_SF = np.loadtxt('files/alpha.dat', unpack=True)
+    log_fnu = 0.128 * np.log10(LIR) - 1.611
+    delta_fnu = abs(log_fnu_SF - log_fnu)
+    idx = np.where(delta_fnu==min(delta_fnu))[0]    
+    return idx
+
+#-----------------------------------------------------------------------------------	
+
+def add_IR_Dale (wavelength, spectra, spectra_dusty):
+
+    '''
+    Add the NIR-FIR spectra from Dale+ 14 IR template to the UV-NIR spectra from BC03/
+    
+    Input:  - wavelength (N-dimensional array)
+            - spectra (N-dimensional array) - intrinsic stellar spectra corresponding to each wavelength
+            - spectra_dusty (N-dimensional array) - attenuated spectra corresponding to each wavelength
+    Output: - wavelength (M-dimensional array) - M > N
+            - spectra (M-dimensional array) - attenuated spectra with IR addition
+    '''
+    
+    Dale_template = np.loadtxt('files/spectra.0.00AGN.dat', unpack=True)
+    lambda_IR = Dale_template[0] * 1e4 #convert from micron to Angstrom
+
+    Ldust = (spectra - spectra_dusty)
+    w = np.where(wavelength < 912)[0]
+    idx_912 = w[-1]
+
+    all_wave = np.unique(np.concatenate((wavelength, lambda_IR)))
+    all_wave.sort(kind='mergesort')
+    UVIR = np.zeros((len(Ldust), len(all_wave)))
+
+    for i in range(len(Ldust)):
+        LIR_mentari = trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
+        #---------------------------------------------------
+        '''
+        #Compute alpha based on Rieke+ 2009
+        if (LIR_mentari > 10**11.6):  
+            LIR_mentari = 10**11.6
+
+        alpha = 10.096 - 0.741 * np.log10(LIR_mentari)
+
+        delta_alpha = abs(alpha_SF - alpha)
+        idx = np.where(delta_alpha==min(delta_alpha))[0]
+        
+        #----------------------------------------------------
+        #Compute log_fnu based on Marcillac+ 2006
+        log_fnu = 0.128 * np.log10(LIR_mentari) - 1.611
+        delta_fnu = abs(log_fnu_SF - log_fnu)
+        idx = np.where(delta_fnu==min(delta_fnu))[0]
+        #----------------------------------------------------
+        '''
+        idx = determine_idx_Marcillac(LIR_mentari)
+        spectra_IR = 10 ** Dale_template[idx[0]+1] 
+
+        LIR_dale = trapz(spectra_IR, lambda_IR)
+        scaling = LIR_mentari / LIR_dale
+        spectra_IR_dale = spectra_IR * scaling 
+
+        new_spectra = np.interp(all_wave, wavelength, spectra_dusty[i])
+        new_IR = np.interp(all_wave, lambda_IR, spectra_IR_dale)
+        all_spec = new_spectra + new_IR
+        UVIR[i] = all_spec
+
+    return (all_wave, UVIR)
+
+#-----------------------------------------------------------------------------------	
+
+"""
+Contains some simple functions for working with the Safarzadeh et al. (2015)
+FIR SED templates.
+
+The find_template function returns the SED template that
+is the best match for the log (L_IR/L_sun) and log (M_dust/M_sun) values
+specified by the user.
+
+The load_templates function reads the ASCII file that
+contains the template data and returns arrays that contain the L_IR and M_dust
+values for each template, a 2-D array that contains the normalized SEDs
+(lambda*L_lambda/L_IR), and the wavelength array.
+
+"""
+def find_template_SUNRISE(
+    lir, #"""logarithm of the IR luminosity in solar units"""
+    mdust, #"""logarithm of the dust mass in solar units"""
+    tol=0.5, #"""maximum allowed discrepancy between template and requested values, delta(L_IR, M_dust); see function docstring"""
+    rtol=0.2, #"""maximum allowed difference between the template and requested L_IR/M_dust ratio"""
+    sed_file="safarzadeh_et_al_2015.txt", #"""full path to file that contains the templates"""
+    verbose=True #"""prints messages if set to True"""
+    ):
+    """Return template with (L_IR, M_dust) values closest to those requested.
+
+    Similarity is defined by the Euclidean distance between the requested and template 
+    (L_IR, M_dust) values,
+
+        delta(L_IR, M_dust) = [(L_IR,requested - L_IR, template)^2
+            + (M_dust,requested - M_dust,template)^2]^(0.5)
+
+    If no template with delta(L_IR, M_dust) < tol is found, then search for a template with an
+    L_IR/M_dust ratio that differs from that requested by at most rtol.
+
+    Parameters:
+        - lir : log (L_IR/L_sun) value for which a template is desired
+        - mdust : log (M_dust/M_sun) value for which a template is desired
+        - tol : maximum allowed delta(L_IR, M_dust) value
+        - rtol : maximum allowed difference between requested and template L_IR/M_dust ratio;
+        only used if delta(L_IR, M_dust) < tol cannot be satisfied
+        - sed_file : full path to file that contains the template
+        - verbose : print helpful messages if set to True
+
+    Returns:
+        - lambda_array: array of wavelengths (in micron)
+        - sed: template SED that is most appropriate for the (L_IR, M_dust) requested; the
+            template is normalized such that its total IR luminosity equals  the *requested*
+            L_IR value (i.e. the normalized SED from the template file is multipled by L_IR
+
+    Example:
+        Find an SED for a galaxy with L_IR = 10^11 L_sun and M_dust = 10^8 M_sun:
+
+            lam, sed = find_template(11.,8.)
+"""
+
+
+    lir_array, mdust_array, sed_array, lambda_array = load_templates_SUNRISE()
+
+    dist = ((lir_array - lir)**2 + (mdust_array - mdust)**2)**(0.5)
+    
+    # first try to find a template with delta(L_IR,M_dust) < tol (see function docstring)
+    if dist.min() < tol :
+        '''
+        if verbose :
+            print ("Template sufficiently close in the (L_IR, M_dust) plane found")
+            print ("Requested: log L_IR = ", lir, ", log M_dust = ", mdust)
+            print ("Template: log L_IR = ", lir_array[dist.argmin()], ", log M_dust = ", \
+                mdust_array[dist.argmin()])
+        '''
+        return lambda_array, sed_array[dist.argmin(),:]*10.**lir
+    else : # not found, so search for one with delta(L_IR/M_dust) < rtol (see function docstring)
+        '''
+        if verbose :
+            print ("Template with delta(L_IR, M_dust) < ",tol," not found. Returning template with nearest L_IR/M_dust value instead")
+        '''
+        ratio=lir-mdust
+        ratio_array=lir_array-mdust_array
+        dist_ratio = np.abs(ratio - ratio_array)
+        if dist_ratio.min() < rtol :
+            '''
+            if verbose :
+                print ("Found template with sufficiently similar L_IR/M_dust ratio")
+                print ("Requested: log L_IR = ", lir, ", log M_dust = ", mdust, \
+                    ", log L_IR/M_dust = ",ratio)
+                print ("Template: log L_IR = ", lir_array[dist_ratio.argmin()], ", log M_dust = ", \
+                    mdust_array[dist_ratio.argmin()],", log L_IR/M_dust = ", \
+                    ratio_array[dist_ratio.argmin()])
+            '''
+            sed = sed_array[dist_ratio.argmin(),:]*10.**lir
+            return lambda_array, sed
+        else : # didn't find a suitable template
+            print ("ERROR: acceptable template not found")
+            return
+
+#-----------------------------------------------------------------------------------	
+
+def load_templates_SUNRISE(
+    sed_file = "safarzadeh_et_al_2015.txt" #"""full path to file that contains the templates"""
+    ):
+    """Read the ASCII file that contains the template data.
+
+    Parameters:
+        - sed_file: the full path to the template file.
+
+    Returns:
+        - lir_array : log (L_IR/L_sun) for each template
+
+        - mdust_array : log (M_dust/M_sun) for each template
+
+        - sed_array: the actual SEDs (lambda*L_lambda) normalized by dividing by L_IR.
+        The first dimension is the template number, and the second is wavelength.
+    
+        - lambda_array: the wavelengths (in microns) at which the SEDs are provided
+
+    Example:
+        import template_functions as tf
+        lir_array, mdust_array, sed_array, lambda_array = tf.load_templates()
+    """
+
+    lir_array = np.loadtxt(sed_file,skiprows=21,usecols=[0])
+    mdust_array = np.loadtxt(sed_file,skiprows=21,usecols=[1])
+    sed_array = np.loadtxt(sed_file,skiprows=21,usecols=(np.arange(19)+3))
+    lambda_array = np.loadtxt(sed_file,skiprows=20,usecols=(np.arange(19)+3))[0,:]*1.e6
+
+    return lir_array, mdust_array, sed_array, lambda_array
+
+#-----------------------------------------------------------------------------------	
+
+def compute_IR_SUNRISE (Dust, wavelength, spectra, spectra_dusty):
+    
+    '''
+    Compute the FIR spectra from SUNRISE model Safarzadeh+ 15    
+    Input:  - Dust (array): dust mass in Msun/h
+            - wavelength (array): in UV-NIR
+            - spectra (array): intrinsic spectra corresponding to each wavelength
+            - spectra_dusty (array): attenuated spectra corresponding to each wavelength
+    Output: - wave_IR (array): wavelength in FIR
+            - lum_IR (array): IR spectra at each corresponding FIR wavelength
+    '''
+
+    w = np.where(Dust > 5e5)[0]
+    new_dust = Dust[w]
+    Ldust = (spectra[w] - spectra_dusty[w])
+    w = np.where(wavelength < 912)[0]
+    idx_912 = w[-1]
+
+    LIR_mentari = trapz(Ldust[0][idx_912:-1], wavelength[idx_912:-1])
+    lam, sed  = find_template_SUNRISE(np.log10(LIR_mentari), np.log10(new_dust[0]))
+    wave_IR = lam * 1e4
+ 
+    lum_IR = np.zeros((len(Ldust), len(wave_IR)))
+
+    for i in range(len(Ldust)):
+        LIR_mentari = trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
+        lam, sed = find_template_SUNRISE(np.log10(LIR_mentari), np.log10(new_dust[i]))
+        lum_IR[i] = sed / (lam * 1e4)   
+        
+    return (wave_IR, lum_IR)
+
+#-----------------------------------------------------------------------------------	
+
+def combine_Dale_SUNRISE(wavelength_sunrise, spectra_sunrise, wavelength_dale, spectra_dale):
+    '''
+    Combine UV-MIR spectra from BC03 and Dale+ 14 with the FIR spectra from SUNRISE (Safarzadeh+15)    
+    Input:  - wavelength_sunrise (array): in FIR
+            - spectra_sunrise (array): FIR spectra from Safarzadeh+14
+            - wavelength_dale (array): in UV-NIR
+            - spectra_dale (array): combination of BC03 and Dale+14 spectra in UV-NIR
+    Output: - all_wave (array): wavelength in UV-IR
+            - new_spec (array): combination of BC03 (UV-NIR), Dale+14 (MIR), and Safarzadeh+ 15 (FIR)
+    '''
+
+    w = np.where(wavelength_dale < wavelength_sunrise[0])
+    all_wave = np.unique(np.concatenate((wavelength_dale[w], wavelength_sunrise)))
+    all_wave.sort(kind='mergesort')
+    
+    new_spec = np.zeros((len(spectra_sunrise), len(all_wave)))
+    for i in range(len(spectra_sunrise)):
+        w = np.where((all_wave < wavelength_sunrise[0]) | (all_wave == wavelength_sunrise[0]))[0]
+        UVIR = np.interp(all_wave[w], wavelength_dale, spectra_dale[i])
+        new_spec[i][w] = UVIR
+        w = np.where(all_wave > wavelength_sunrise[0])[0]
+        new_spec[i,w] = np.interp(all_wave[w], wavelength_sunrise, spectra_sunrise[i])
+
+    return (all_wave, new_spec)
+
 #-----------------------------------------------------------------------------------	
 
 def age_to_lookback(age): #age in Gyr, lookback in yr
@@ -536,7 +1107,9 @@ def age_to_lookback(age): #age in Gyr, lookback in yr
     '''
     lookback = (np.array([13.6098]*len(age)) - age) * 1.e9
     return lookback
+
 #-----------------------------------------------------------------------------------	
+
 def read_filters():
     
     '''
