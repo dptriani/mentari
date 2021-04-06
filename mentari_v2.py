@@ -362,7 +362,7 @@ def calculate_mass_and_metals(SAM_choice, tree, snap_limit):
                 
     return mass, metals
 #-----------------------------------------------------------------------------------	
-def calculate_dust_density (tree):
+def calculate_dust_density (tree, snap_limit):
     """Calculate mass history from Dusty-SAGE tree.
     In one fly, it will calculate the mass and metals history of a tree while mapping
     the descendant.
@@ -473,12 +473,12 @@ def build_mass_and_metallicity_history(SAM_choice, directory, firstfile, lastfil
     return(Mass, Metals)
 #-----------------------------------------------------------------------------------	
 
-def build_dust_history(SAM_choice, directory, firstfile, lastfile):
+def build_dust_history(SAM_choice, directory, firstfile, lastfile, snap_limit):
     '''
     Build mass and metallicity history from the output directory of dusty-sage
     Input:  - SAM_choice (int): (0) SAGE (1) Dusty-SAGE
             - directory (string) -- path to the directory containing dusty-sage output tree
-            - snap_limit (integer) -- number of last snapshot
+            - snap_limit (integer) -- index of the last snapshot
             
     Output: - Dust (array(list(float))) -- an array containing a number of galaxy, each containing mass (in Msun/h) of each snapshot
             - Gas metals (array(list(float))) -- an array containing a number of galaxy, each containing gas phase metal mass (in Msun/h) of each snapshot
@@ -491,7 +491,7 @@ def build_dust_history(SAM_choice, directory, firstfile, lastfile):
     Rad = []
     
     for tree in iterate_trees(SAM_choice, directory, firstfile, lastfile):
-        dust, gas_metal, gas, rad = calculate_dust_density(tree)
+        dust, gas_metal, gas, rad = calculate_dust_density(tree, snap_limit)
         Dust.extend(dust)
         GasMetals.extend(gas_metal)
         Gas.extend(gas)
@@ -610,8 +610,8 @@ def generate_SED(SSP, Age, MassHist, MetalHist, tau_head_BC, tau_head_ISM, eta_B
     tau_BC = tau_ISM + compute_tau(tau_head_BC, eta_BC, wavelength)
     
     
-    attenuation_factor_BC = e**(-tau_BC)
-    attenuation_factor_ISM = e**(-tau_ISM)
+    attenuation_factor_BC = np.e**(-tau_BC)
+    attenuation_factor_ISM = np.e**(-tau_ISM)
     
     for i in range(len(lookback) - 1):
         
@@ -679,12 +679,13 @@ def compute_tauBC_Trayford(ColdDust, ColdGas, rad):
     Compute optical depth at 5500 A for birth clouds using relation in Trayford+ 19
     (relation between dust surface density and optical depth)
     
-    Input:  - ColdDust (float or array): total cold dust mass in the ISM
-            - ColdGas (float or array): total cold gas mass in the ISM
-            - rad (float or array): disk radius
-    Output: - Sigma_BC (float or array): dust surface density in the birth clouds
+    Input:  - ColdDust (float or array): total cold dust mass in the ISM in Msun
+            - ColdGas (float or array): total cold gas mass in the ISM in Msun
+            - rad (float or array): disk radius in Mpc
+    Output: - Sigma_BC (float or array): dust surface density in the birth clouds (logscale Msun/kpc2)
             - tau_BC (float or array): optical depth at 5500 A for birth clouds
     '''
+
     
     fdust = ColdDust / ColdGas
     ScaleRad = rad * 1e6 #convert to pc
@@ -713,12 +714,13 @@ def compute_tauISM_Trayford(ColdDust, ColdGas, rad):
     '''
     Compute ISM optical depth from relation in Trayford+ 19
     
-    Input:  - ColdDust (float or array): total cold dust mass in the ISM
-            - ColdGas (float or array): total cold gas mass in the ISM
-            - rad (float or array): disk radius
-    Output: - Sigma_dust (float or array): dust surface density in the diffuse ISM
+    Input:  - ColdDust (float or array): total cold dust mass in the ISM (Msun)
+            - ColdGas (float or array): total cold gas mass in the ISM (Msun)
+            - rad (float or array): disk radius in Mpc
+    Output: - Sigma_dust (float or array): dust surface density in the diffuse ISM (in logscale - Msun/kpc2)
             - tau_ISM (float or array): optical depth at 5500 A for diffuse ISM
     '''
+
     ScaleRad = rad * 1e3 #convert to kpc
     halfrad = 1.68 * ScaleRad
     threerad = 0.4 * ScaleRad
@@ -742,12 +744,13 @@ def compute_etaISM_Trayford(ColdDust, ColdGas, rad):
     '''
     Compute powerlaw index for the diffuse ISM component from relation in Trayford+ 19
     
-    Input:  - ColdDust (float or array): total cold dust mass in the ISM
-            - ColdGas (float or array): total cold gas mass in the ISM
-            - rad (float or array): disk radius
-    Output: - Sigma_dust (float or array): dust surface density in the diffuse ISM
+    Input:  - ColdDust (float or array): total cold dust mass in the ISM in Msun
+            - ColdGas (float or array): total cold gas mass in the ISM in Msun
+            - rad (float or array): disk radius in Mpc
+    Output: - Sigma_dust (float or array): dust surface density in the diffuse ISM (logscale Msun/kpc2)
             - eta_ISM (float or array): powerlaw index for diffuse ISM
     '''
+
 
     ScaleRad = rad * 1e3 #convert to kpc
     halfrad = 1.68 * ScaleRad
@@ -770,11 +773,12 @@ def compute_tauISM_Somerville (Dust, Rad):
     '''
     Compute ISM optical depth from prescription in Somerville+ 2012
     
-    Input:  - ColdDust (float or array): total cold dust mass in the ISM
-            - rad (float or array): disk radius
-    Output: - Sigma_dust (float or array): dust surface density in the diffuse ISM
+    Input:  - ColdDust (float or array): total cold dust mass in the ISM in Msun
+            - rad (float or array): disk radius in Mpc
+    Output: - Sigma_dust (float or array): dust surface density in the diffuse ISM (Msun/pc2)
             - tau_ISM (float or array): optical depth at 5500 A for diffuse ISM
     '''
+
     
     Chi_gas = 0.42
     rad_gas = Chi_gas * Rad * 1e6
@@ -789,14 +793,16 @@ def compute_tauISM_Somerville (Dust, Rad):
 
 def compute_tauBC_Somerville (Dust, Rad):
     
+    
     '''
     Compute birth clouds' optical depth from prescription in Somerville+ 2012
     
-    Input:  - ColdDust (float or array): total cold dust mass in the ISM
-            - rad (float or array): disk radius
-    Output: - Sigma_dust (float or array): dust surface density in the Birth Clouds
+    Input:  - ColdDust (float or array): total cold dust mass in the ISM in Msun
+            - rad (float or array): disk radius in Mpc
+    Output: - Sigma_dust (float or array): dust surface density in the Birth Clouds (Msun/pc2)
             - tau_ISM (float or array): optical depth at 5500 A for Birth Clouds
     '''
+
     
     Chi_gas = 0.42
     rad_gas = Chi_gas * Rad * 1e6
@@ -812,6 +818,38 @@ def compute_tauBC_Somerville (Dust, Rad):
 
 #-----------------------------------------------------------------------------------	
 
+def compute_attenuation_parameters (prescription_choice, DustMass, GasMass, Radius):
+    '''
+    Compute attenuation parameters based on the Charlot & Fall (2000) model.
+    We adopted two prescriptions to compute the parameters:
+    Input:  - prescription_choice (int): (0) Lagos+ 19 (1) Somerville+ 12
+            - DustMass (float or array): Dust mass in Msun
+            - GasMass (float or array): Gas mass in Msun
+            
+    Output: - Mass (array(list(float))) -- an array containing a number of galaxy, each containing mass (in Msun/h) of each snapshot
+            - Metallicity (array(list(float))) -- an array containing a number of galaxy, each containing stellar metallicity of each snapshot
+
+    '''
+
+    
+    eta_BC = [-0.7] * len(DustMass)
+    
+    if prescription_choice == 0:
+        Sigma_BC, tau_BC = compute_tauBC_Trayford(DustMass, GasMass, Radius)
+        Sigma_tau_ISM, tau_ISM = compute_tauISM_Trayford(DustMass, GasMass, Radius)
+        Sigma_eta_ISM, eta_ISM = compute_etaISM_Trayford(DustMass, GasMass, Radius)
+
+    elif prescription_choice == 1:
+        eta_ISM = [-1.3] * len(DustMass)
+        Sigma_ISM, tau_ISM = compute_tauISM_Somerville (DustMass, Radius)
+        Sigma_BC, tau_BC = compute_tauBC_Somerville (DustMass, Radius)
+    
+    else:
+        print("Choose 0 for attenuation prescriptions from Lagos+19 and 1 for Somerville+12")
+        
+    return tau_BC, eta_BC, tau_ISM, eta_ISM
+
+#-----------------------------------------------------------------------------------	
 def determine_idx_Rieke(LIR):
     
     '''
@@ -876,7 +914,7 @@ def add_IR_Dale (wavelength, spectra, spectra_dusty):
     UVIR = np.zeros((len(Ldust), len(all_wave)))
 
     for i in range(len(Ldust)):
-        LIR_mentari = trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
+        LIR_mentari = np.trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
         #---------------------------------------------------
         '''
         #Compute alpha based on Rieke+ 2009
@@ -898,7 +936,7 @@ def add_IR_Dale (wavelength, spectra, spectra_dusty):
         idx = determine_idx_Marcillac(LIR_mentari)
         spectra_IR = 10 ** Dale_template[idx[0]+1] 
 
-        LIR_dale = trapz(spectra_IR, lambda_IR)
+        LIR_dale = np.trapz(spectra_IR, lambda_IR)
         scaling = LIR_mentari / LIR_dale
         spectra_IR_dale = spectra_IR * scaling 
 
@@ -1056,14 +1094,14 @@ def compute_IR_SUNRISE (Dust, wavelength, spectra, spectra_dusty):
     w = np.where(wavelength < 912)[0]
     idx_912 = w[-1]
 
-    LIR_mentari = trapz(Ldust[0][idx_912:-1], wavelength[idx_912:-1])
+    LIR_mentari = np.trapz(Ldust[0][idx_912:-1], wavelength[idx_912:-1])
     lam, sed  = find_template_SUNRISE(np.log10(LIR_mentari), np.log10(new_dust[0]))
     wave_IR = lam * 1e4
  
     lum_IR = np.zeros((len(Ldust), len(wave_IR)))
 
     for i in range(len(Ldust)):
-        LIR_mentari = trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
+        LIR_mentari = np.trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
         lam, sed = find_template_SUNRISE(np.log10(LIR_mentari), np.log10(new_dust[i]))
         lum_IR[i] = sed / (lam * 1e4)   
         
