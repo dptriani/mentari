@@ -2,11 +2,11 @@ import numpy as np
 import h5py
 import mentari_v2 as mtr
 
-directory_dusty = "../dusty-sage/src/auxdata/trees/save-stellar-DTG/"
+directory_dusty = "../output/test-bulge4/"
 snap_limit = 63
-BoxSize = ((62.5**3) * (6/8))**(1/3) #mini-millennium
-firstfile = 2
-lastfile = 7
+#BoxSize = ((62.5**3) * (6/8))**(1/3) #mini-millennium
+firstfile = 0
+lastfile = 0
 Hubble_h = 0.73
 
 mass_dusty, metals_dusty = mtr.build_mass_and_metallicity_history(1, directory_dusty, firstfile, lastfile, snap_limit)
@@ -36,7 +36,7 @@ wavelength, spectra, spectra_dusty = mtr.generate_SED(0, Age, Mass, Metals,
 wavelength_IR, spectra_IR = mtr.add_IR_Dale(wavelength, spectra, spectra_dusty)
 wave_FIR, spec_FIR = mtr.compute_IR_SUNRISE (Dust, wavelength, spectra, spectra_dusty)
 wavelength_IR_b, spectra_IR_b = mtr.combine_Dale_SUNRISE(wave_FIR, spec_FIR, wavelength_IR, spectra_IR)
-'''
+
 with h5py.File('mentari_output.h5', 'a') as f:
     f.create_dataset('StellarMass', data=Mass, maxshape=(None,snap_limit+1))
 
@@ -51,8 +51,7 @@ with h5py.File('mentari_output.h5', 'a') as f:
     f.create_dataset('Wavelength_SUNRISE', data=wavelength_IR_b, maxshape=(None,))
     f.create_dataset('Spectra_SUNRISE', data=spectra_IR_b, maxshape=(None,len(wavelength_IR_b)))
 '''
-
-with h5py.File('mentari_test7.h5', 'a') as f:
+with h5py.File('mentari_output.h5', 'a') as f:
     f['StellarMass'].resize((f['StellarMass'].shape[0] + Mass.shape[0]), axis=0)
     f['StellarMass'][-Mass.shape[0]:] = Mass
     f['Metallicity'].resize((f['Metallicity'].shape[0] + Metals.shape[0]), axis=0)
@@ -69,3 +68,4 @@ with h5py.File('mentari_test7.h5', 'a') as f:
     f['Spectra_stellar'][-spectra.shape[0]:] = spectra
     f['Spectra_SUNRISE'].resize((f['Spectra_SUNRISE'].shape[0] + spectra_IR_b.shape[0]), axis=0)
     f['Spectra_SUNRISE'][-spectra_IR_b.shape[0]:] =spectra_IR_b
+'''
