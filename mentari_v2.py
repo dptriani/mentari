@@ -1089,22 +1089,23 @@ def compute_IR_SUNRISE (Dust, wavelength, spectra, spectra_dusty):
     '''
     w = np.where(Dust > 5e5)[0]
     if len(w) > 0:
-	new_dust = Dust[w]
-	Ldust = (spectra[w] - spectra_dusty[w])
-	w = np.where(wavelength < 912)[0]
-	idx_912 = w[-1]
+        new_dust = Dust[w]
+        Ldust = (spectra[w] - spectra_dusty[w])
+        w = np.where(wavelength < 912)[0]
+        idx_912 = w[-1]
 
-	LIR_mentari = np.trapz(Ldust[0][idx_912:-1], wavelength[idx_912:-1])
-	lam, sed  = find_template_SUNRISE(np.log10(LIR_mentari), np.log10(new_dust[0]))
-	wave_IR = lam * 1e4
-	lum_IR = np.zeros((len(Ldust), len(wave_IR)))
-	
-	for i in range(len(Ldust)):
-		LIR_mentari = np.trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
-		lam, sed = find_template_SUNRISE(np.log10(LIR_mentari), np.log10(new_dust[i]))
-		lum_IR[i] = sed / (lam * 1e4)   
-        
-    return (wave_IR, lum_IR)
+        LIR_mentari = np.trapz(Ldust[0][idx_912:-1], wavelength[idx_912:-1])
+        lam, sed  = find_template_SUNRISE(np.log10(LIR_mentari), np.log10(new_dust[0]))
+        wave_IR = lam * 1e4
+        lum_IR = np.zeros((len(Ldust), len(wave_IR)))
+
+        for i in range(len(Ldust)):
+            LIR_mentari = np.trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
+            lam, sed = find_template_SUNRISE(np.log10(LIR_mentari), np.log10(new_dust[i]))
+            lum_IR[i] = sed / (lam * 1e4)   
+
+    
+        return (wave_IR, lum_IR)
 
 #-----------------------------------------------------------------------------------	
 
