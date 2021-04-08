@@ -1106,8 +1106,8 @@ def compute_IR_SUNRISE (Dust, wavelength, spectra, spectra_dusty):
 
     else:
 	
-	wave_IR = 0
-	lum_IR = 0
+        wave_IR = 0
+        lum_IR = 0
     return (wave_IR, lum_IR)
 
 #-----------------------------------------------------------------------------------	
