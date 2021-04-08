@@ -1104,8 +1104,11 @@ def compute_IR_SUNRISE (Dust, wavelength, spectra, spectra_dusty):
             lam, sed = find_template_SUNRISE(np.log10(LIR_mentari), np.log10(new_dust[i]))
             lum_IR[i] = sed / (lam * 1e4)   
 
-    
-        return (wave_IR, lum_IR)
+    else:
+	
+	wave_IR = 0
+	lum_IR = 0
+    return (wave_IR, lum_IR)
 
 #-----------------------------------------------------------------------------------	
 
