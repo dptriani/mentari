@@ -1636,7 +1636,7 @@ if __name__ == '__main__':
         '-do',
         '--output_dir_name',
         dest='InputDirName',
-        default='output/,
+        default='output/',
         help='output directory name (default: output/)',
         metavar='OUTDIR',
         )
