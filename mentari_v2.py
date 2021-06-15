@@ -1650,7 +1650,7 @@ if __name__ == '__main__':
         opt.OutputDirName += '/'
     
     if not os.path.exists(opt.OutputDirName):
-    os.makedirs(opt.OutputDirName)
+        os.makedirs(opt.OutputDirName)
     
     snap_limit = 63 #number of last snapshot (snapshot 63 corresponds to z=0)
     Hubble_h = 0.73
