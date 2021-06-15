@@ -1644,10 +1644,10 @@ if __name__ == '__main__':
     (opt, args) = parser.parse_args()
     
     if opt.InputDirName[-1] != '/':
-    opt.InputDirName += '/'
+        opt.InputDirName += '/'
     
     if opt.OutputDirName[-1] != '/':
-    opt.OutputDirName += '/'
+        opt.OutputDirName += '/'
     
     if not os.path.exists(opt.OutputDirName):
     os.makedirs(opt.OutputDirName)
