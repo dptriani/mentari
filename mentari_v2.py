@@ -831,24 +831,27 @@ def compute_attenuation_parameters (prescription_choice, DustMass, GasMass, Radi
 
     '''
 
-    
     eta_BC = [-0.7] * len(DustMass)
+    eta_ISM = np.zeros(len(DustMass))
+    tau_BC = np.zeros(len(DustMass))
+    tau_ISM = np.zeros(len(DustMass))  
+    
+    w = np.where(DustMass > 0)[0]
     
     if prescription_choice == 0:
-        Sigma_BC, tau_BC = compute_tauBC_Trayford(DustMass, GasMass, Radius)
-        Sigma_tau_ISM, tau_ISM = compute_tauISM_Trayford(DustMass, GasMass, Radius)
-        Sigma_eta_ISM, eta_ISM = compute_etaISM_Trayford(DustMass, GasMass, Radius)
+        Sigma_BC, tau_BC[w] = compute_tauBC_Trayford(DustMass[w], GasMass[w], Radius[w])
+        Sigma_tau_ISM, tau_ISM[w] = compute_tauISM_Trayford(DustMass[w], GasMass[w], Radius[w])
+        Sigma_eta_ISM, eta_ISM[w] = compute_etaISM_Trayford(DustMass[w], GasMass[w], Radius[w])
 
     elif prescription_choice == 1:
-        eta_ISM = [-1.3] * len(DustMass)
-        Sigma_ISM, tau_ISM = compute_tauISM_Somerville (DustMass, Radius)
-        Sigma_BC, tau_BC = compute_tauBC_Somerville (DustMass, Radius)
+        eta_ISM[w] = -1.3
+        Sigma_ISM, tau_ISM[w] = compute_tauISM_Somerville (DustMass[w], Radius[w])
+        Sigma_BC, tau_BC[w] = compute_tauBC_Somerville (DustMass[w], Radius[w])
     
     else:
         print("Choose 0 for attenuation prescriptions from Lagos+19 and 1 for Somerville+12")
         
     return tau_BC, eta_BC, tau_ISM, eta_ISM
-
 #-----------------------------------------------------------------------------------	
 def determine_idx_Rieke(LIR):
     
@@ -912,7 +915,7 @@ def add_IR_Dale (wavelength, spectra, spectra_dusty):
     all_wave = np.unique(np.concatenate((wavelength, lambda_IR)))
     all_wave.sort(kind='mergesort')
     UVIR = np.zeros((len(Ldust), len(all_wave)))
-
+    
     for i in range(len(Ldust)):
         LIR_mentari = np.trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
         #---------------------------------------------------
@@ -925,7 +928,7 @@ def add_IR_Dale (wavelength, spectra, spectra_dusty):
 
         delta_alpha = abs(alpha_SF - alpha)
         idx = np.where(delta_alpha==min(delta_alpha))[0]
-        
+
         #----------------------------------------------------
         #Compute log_fnu based on Marcillac+ 2006
         log_fnu = 0.128 * np.log10(LIR_mentari) - 1.611
@@ -940,15 +943,15 @@ def add_IR_Dale (wavelength, spectra, spectra_dusty):
         scaling = LIR_mentari / LIR_dale
         spectra_IR_dale = spectra_IR * scaling 
 
-        new_spectra = np.interp(all_wave, wavelength, spectra_dusty[i])
-        new_IR = np.interp(all_wave, lambda_IR, spectra_IR_dale)
-        all_spec = new_spectra + new_IR
-        UVIR[i] = all_spec
+        wa = np.where((all_wave < wavelength[-1]) | (all_wave == wavelength[-1]))[0]
+        UVIR[i][wa] += np.interp(all_wave[wa], wavelength, spectra_dusty[i])
+
+        we = np.where((all_wave > lambda_IR[0]) | (all_wave == lambda_IR[0]))[0]
+        UVIR[i][we] += np.interp(all_wave[we], lambda_IR, spectra_IR_dale)
 
     return (all_wave, UVIR)
 
 #-----------------------------------------------------------------------------------	
-
 """
 Contains some simple functions for working with the Safarzadeh et al. (2015)
 FIR SED templates.
@@ -967,7 +970,8 @@ def find_template_SUNRISE(
     lir, #"""logarithm of the IR luminosity in solar units"""
     mdust, #"""logarithm of the dust mass in solar units"""
     tol=0.5, #"""maximum allowed discrepancy between template and requested values, delta(L_IR, M_dust); see function docstring"""
-    rtol=0.2, #"""maximum allowed difference between the template and requested L_IR/M_dust ratio"""
+    #rtol=0.2, #"""maximum allowed difference between the template and requested L_IR/M_dust ratio"""
+    rtol=0.5,
     sed_file="safarzadeh_et_al_2015.txt", #"""full path to file that contains the templates"""
     verbose=True #"""prints messages if set to True"""
     ):
@@ -1039,8 +1043,8 @@ def find_template_SUNRISE(
             sed = sed_array[dist_ratio.argmin(),:]*10.**lir
             return lambda_array, sed
         else : # didn't find a suitable template
-            print ("ERROR: acceptable template not found")
-            return
+            #print ("ERROR: acceptable template not found, mdust = " + str(mdust) + "mdust = ")
+            return lambda_array, np.zeros(len(lambda_array))
 
 #-----------------------------------------------------------------------------------	
 
@@ -1076,66 +1080,45 @@ def load_templates_SUNRISE(
 
 #-----------------------------------------------------------------------------------	
 
-def compute_IR_SUNRISE (Dust, wavelength, spectra, spectra_dusty):
-    
+def combine_Dale_SUNRISE(DustMass, wavelength, spectra, spectra_dusty):
     '''
-    Compute the FIR spectra from SUNRISE model Safarzadeh+ 15    
+    Compute the FIR spectra from SUNRISE model Safarzadeh+ 15 and combine it with FUV - NIR BC03 spectra and MIR Dale+ 14 spectra 
     Input:  - Dust (array): dust mass in Msun/h
-            - wavelength (array): in UV-NIR
+            - wavelength (array): in UV-MIR
             - spectra (array): intrinsic spectra corresponding to each wavelength
             - spectra_dusty (array): attenuated spectra corresponding to each wavelength
-    Output: - wave_IR (array): wavelength in FIR
-            - lum_IR (array): IR spectra at each corresponding FIR wavelength
+    Output: - wave_IR (array): wavelength in UV - FIR
+            - lum_IR (array): IR spectra at each corresponding wavelength
     '''
-    w = np.where(Dust > 5e5)[0]
-    if len(w) > 0:
-        new_dust = Dust[w]
-        Ldust = (spectra[w] - spectra_dusty[w])
-        w = np.where(wavelength < 912)[0]
-        idx_912 = w[-1]
-
-        LIR_mentari = np.trapz(Ldust[0][idx_912:-1], wavelength[idx_912:-1])
-        lam, sed  = find_template_SUNRISE(np.log10(LIR_mentari), np.log10(new_dust[0]))
-        wave_IR = lam * 1e4
-        lum_IR = np.zeros((len(Ldust), len(wave_IR)))
-
-        for i in range(len(Ldust)):
-            LIR_mentari = np.trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
-            lam, sed = find_template_SUNRISE(np.log10(LIR_mentari), np.log10(new_dust[i]))
-            lum_IR[i] = sed / (lam * 1e4)   
-
-    else:
-	
-        wave_IR = 0
-        lum_IR = 0
-    return (wave_IR, lum_IR)
-
-#-----------------------------------------------------------------------------------	
-
-def combine_Dale_SUNRISE(wavelength_sunrise, spectra_sunrise, wavelength_dale, spectra_dale):
-    '''
-    Combine UV-MIR spectra from BC03 and Dale+ 14 with the FIR spectra from SUNRISE (Safarzadeh+15)    
-    Input:  - wavelength_sunrise (array): in FIR
-            - spectra_sunrise (array): FIR spectra from Safarzadeh+14
-            - wavelength_dale (array): in UV-NIR
-            - spectra_dale (array): combination of BC03 and Dale+14 spectra in UV-NIR
-    Output: - all_wave (array): wavelength in UV-IR
-            - new_spec (array): combination of BC03 (UV-NIR), Dale+14 (MIR), and Safarzadeh+ 15 (FIR)
-    '''
+    lir_array, mdust_array, sed_array, lambda_array = load_templates_SUNRISE()
+    wavelength_dale, spectra_dale = add_IR_Dale(wavelength, spectra, spectra_dusty)
+    wavelength_sunrise = lambda_array * 1e4 #convert micrometer to angstrom
 
     w = np.where(wavelength_dale < wavelength_sunrise[0])
     all_wave = np.unique(np.concatenate((wavelength_dale[w], wavelength_sunrise)))
     all_wave.sort(kind='mergesort')
+    new_spec = np.zeros((len(DustMass), len(all_wave)))
     
-    new_spec = np.zeros((len(spectra_sunrise), len(all_wave)))
-    for i in range(len(spectra_sunrise)):
-        w = np.where((all_wave < wavelength_sunrise[0]) | (all_wave == wavelength_sunrise[0]))[0]
-        UVIR = np.interp(all_wave[w], wavelength_dale, spectra_dale[i])
-        new_spec[i][w] = UVIR
-        w = np.where(all_wave > wavelength_sunrise[0])[0]
-        new_spec[i,w] = np.interp(all_wave[w], wavelength_sunrise, spectra_sunrise[i])
+    Ldust = (spectra - spectra_dusty)
+    w = np.where(wavelength < 912)[0]
+    idx_912 = w[-1]
 
-    return (all_wave, new_spec)
+    for i in range(len(Ldust)):
+        LIR_mentari = np.trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
+        if DustMass[i] > 0:
+            lam, sed = find_template_SUNRISE(np.log10(LIR_mentari), np.log10(DustMass[i]))
+        else:
+            lam, sed = find_template_SUNRISE(0, 0)
+        spectra_sunrise = sed / (lam * 1e4)   
+
+        wa = np.where((all_wave < wavelength_sunrise[0]) | (all_wave == wavelength_sunrise[0]))[0]
+        new_spec[i][wa] += np.interp(all_wave[wa], wavelength_dale, spectra_dale[i])
+
+        wb = np.where(all_wave > wavelength_sunrise[0])[0]
+        new_spec[i][wb] += np.interp(all_wave[wb], wavelength_sunrise, spectra_sunrise)
+                
+    return all_wave, new_spec
+                
 
 #-----------------------------------------------------------------------------------	
 
@@ -1548,3 +1531,129 @@ def compute_mab(wavelength, luminosity, filter_list, z):
     	mab_list.append(mab)
     return(mab_list)
 #-----------------------------------------------------------------------------------	
+
+def save_spectra(directory_input, firstfile, lastfile, snap_limit, directory_output, Hubble_h):
+    
+    Age = np.asarray([0.0124, 0.0246, 0.0491, 0.1037, 0.1871, 0.2120, 0.2399, 0.2709, 0.3054, 0.3438, 0.3864, 0.4335, 0.4856, 0.5430, 0.6062, 0.6756, 0.7517, 0.8349, 0.9259, 1.0249, 1.1327, 1.2496, 1.3763, 1.5131, 1.6606, 1.8192, 1.9895, 2.1717, 2.3662, 2.5734, 2.7934, 3.0265, 3.2726, 3.5318, 3.8038, 4.0886, 4.3856, 4.6944, 5.0144, 5.3488, 5.6849, 6.0337, 6.3901, 6.7531, 7.1215, 7.4940, 7.8694, 8.2464, 8.6238, 9.0004, 9.3750, 9.7463, 10.1133, 10.4750, 10.8303, 11.1783, 11.5181, 11.8490, 12.1702, 12.4811, 12.7810, 13.0695, 13.3459, 13.6098])
+
+    for i in range(firstfile, lastfile+1):
+        print('Running file number ', i)
+        filename = directory_output + "mentari_output_v3_" + str(i) + ".hdf5"
+        if os.path.isfile(filename) == 0:
+
+            mass_dusty, metals_dusty = mtr.build_mass_and_metallicity_history(1, directory_input, i, i, snap_limit)
+            dust, gas_metals, gas, rad  = mtr.build_dust_history(1, directory_input, i, i, snap_limit)
+
+            #Compute attenuation parameters
+            w = np.where((mass_dusty[:,snap_limit] > 0) & (dust[:,snap_limit] > 0))[0]
+            Mass = mass_dusty[w] / Hubble_h 
+            Metals = metals_dusty[w]
+
+            Dust = dust[w,snap_limit] / Hubble_h
+            Gas = gas[w,snap_limit] / Hubble_h
+            Rad = rad[w,snap_limit] / Hubble_h
+
+            prescription = 0 #0 for Lagos+ 19; 1 for Somerville+ 12
+            tau_BC, eta_BC, tau_ISM, eta_ISM = mtr.compute_attenuation_parameters (prescription, Dust, Gas, Rad)
+
+            #Model Variants 1: Lagos + Dale + Safarzadeh
+            time_BC = 10**7
+            SSP = 0 #0 for BC03 
+            wavelength, spectra, spectra_dusty = mtr.generate_SED(0, Age, Mass, Metals, 
+                         tau_BC, tau_ISM, eta_BC, eta_ISM, time_BC)
+
+            wavelength_m1, spectra_m1 = mtr.combine_Dale_SUNRISE(Dust, wavelength, spectra, spectra_dusty)
+
+            #Model Variants 2: Lagos + Dale
+            wavelength_m2, spectra_m2 = mtr.add_IR_Dale(wavelength, spectra, spectra_dusty)
+
+            #Model Variants 3: Somerville + Dale + Safarzadeh
+            prescription = 1 #0 for Lagos+ 19; 1 for Somerville+ 12
+            tau_BC_s, eta_BC_s, tau_ISM_s, eta_ISM_s = mtr.compute_attenuation_parameters (prescription, Dust, Gas, Rad)
+            wavelength_s, spectra_s, spectra_dusty_s = mtr.generate_SED(0, Age, Mass, Metals, tau_BC_s, tau_ISM_s, eta_BC_s, eta_ISM_s, time_BC)
+
+            wavelength_m3, spectra_m3 = mtr.combine_Dale_SUNRISE(Dust, wavelength_s, spectra_s, spectra_dusty_s)
+
+            #Model Variants 4: CF00 + Dale + Safarzadeh
+            tau_BC_cf = 1.0
+            eta_BC_cf = -0.7
+            tau_ISM_cf = 0.3
+            eta_ISM_cf = -0.7
+            wavelength_cf, spectra_cf, spectra_dusty_cf = mtr.generate_SED(0, Age, Mass, Metals, 
+                         tau_BC_cf, tau_ISM_cf, eta_BC_cf, eta_ISM_cf, time_BC)
+
+            wavelength_m4, spectra_m4 = mtr.combine_Dale_SUNRISE(Dust, wavelength_cf, spectra_cf, spectra_dusty_cf)
+
+            with h5py.File(filename, 'w') as f:
+                f.create_dataset('StellarMass', data=Mass)
+                f.create_dataset('Metallicity', data=Metals)
+                f.create_dataset('DustMass', data=Dust)
+                f.create_dataset('GasMass', data=Gas)
+                f.create_dataset('Radius', data=Rad)
+                f.create_dataset('Wavelength_m1', data=wavelength_m1)
+                f.create_dataset('Spectra_m1', data=spectra_m1)
+                f.create_dataset('Wavelength_m2', data=wavelength_m2)
+                f.create_dataset('Spectra_m2', data=spectra_m2)
+                f.create_dataset('Wavelength_m3', data=wavelength_m3)
+                f.create_dataset('Spectra_m3', data=spectra_m3)
+                f.create_dataset('Wavelength_m4', data=wavelength_m4)
+                f.create_dataset('Spectra_m4', data=spectra_m4)
+                f.create_dataset('Wavelength_stellar', data=wavelength)
+                f.create_dataset('Spectra_stellar', data=spectra)
+
+#-----------------------------------------------------------------------------------	
+
+#  'Main' section of code.  This if statement executes if the code is run from the 
+#   shell command line, i.e. with 'python mentari_v2.py'
+
+if __name__ == '__main__':
+    
+    from optparse import OptionParser
+    import os
+    
+    parser = OptionParser()
+    
+    parser = OptionParser()
+    parser.add_option(
+        '-di',
+        '--input_dir_name',
+        dest='InputDirName',
+        default='./millennium/',
+        help='input directory name (default: ./millennium/)',
+        metavar='INDIR',
+        )
+    parser.add_option(
+        '-n',
+        '--file_range',
+        type='int',
+        nargs=2,
+        dest='FileRange',
+        default=(0, 7),
+        help='first and last filenumbers (default: 0 7)',
+        metavar='FIRST LAST',
+        )
+    parser.add_option(
+        '-do',
+        '--output_dir_name',
+        dest='InputDirName',
+        default='output/,
+        help='output directory name (default: output/)',
+        metavar='OUTDIR',
+        )
+
+    (opt, args) = parser.parse_args()
+    
+    if opt.InputDirName[-1] != '/':
+    opt.InputDirName += '/'
+    
+    if opt.OutputDirName[-1] != '/':
+    opt.OutputDirName += '/'
+    
+    if not os.path.exists(opt.OutputDirName):
+    os.makedirs(opt.OutputDirName)
+    
+    snap_limit = 63 #number of last snapshot (snapshot 63 corresponds to z=0)
+    Hubble_h = 0.73
+    
+    save_spectra(opt.InputDirName, opt.FileRange[0], opt.FileRange[1], snap_limit, opt.OutputDirName, Hubble_h)
+    
