@@ -6,6 +6,7 @@ cosmo = FlatLambdaCDM(H0=73, Om0=0.25)
 from os.path import dirname, abspath, join as pjoin
 import re, os
 import numpy as np
+import h5py 
 
 def galdtype_dusty(align=True):
      
@@ -1541,8 +1542,8 @@ def save_spectra(directory_input, firstfile, lastfile, snap_limit, directory_out
         filename = directory_output + "mentari_output_v3_" + str(i) + ".hdf5"
         if os.path.isfile(filename) == 0:
 
-            mass_dusty, metals_dusty = mtr.build_mass_and_metallicity_history(1, directory_input, i, i, snap_limit)
-            dust, gas_metals, gas, rad  = mtr.build_dust_history(1, directory_input, i, i, snap_limit)
+            mass_dusty, metals_dusty = build_mass_and_metallicity_history(1, directory_input, i, i, snap_limit)
+            dust, gas_metals, gas, rad  = build_dust_history(1, directory_input, i, i, snap_limit)
 
             #Compute attenuation parameters
             w = np.where((mass_dusty[:,snap_limit] > 0) & (dust[:,snap_limit] > 0))[0]
@@ -1554,35 +1555,35 @@ def save_spectra(directory_input, firstfile, lastfile, snap_limit, directory_out
             Rad = rad[w,snap_limit] / Hubble_h
 
             prescription = 0 #0 for Lagos+ 19; 1 for Somerville+ 12
-            tau_BC, eta_BC, tau_ISM, eta_ISM = mtr.compute_attenuation_parameters (prescription, Dust, Gas, Rad)
+            tau_BC, eta_BC, tau_ISM, eta_ISM = compute_attenuation_parameters (prescription, Dust, Gas, Rad)
 
             #Model Variants 1: Lagos + Dale + Safarzadeh
             time_BC = 10**7
             SSP = 0 #0 for BC03 
-            wavelength, spectra, spectra_dusty = mtr.generate_SED(0, Age, Mass, Metals, 
+            wavelength, spectra, spectra_dusty = generate_SED(0, Age, Mass, Metals, 
                          tau_BC, tau_ISM, eta_BC, eta_ISM, time_BC)
 
-            wavelength_m1, spectra_m1 = mtr.combine_Dale_SUNRISE(Dust, wavelength, spectra, spectra_dusty)
+            wavelength_m1, spectra_m1 = combine_Dale_SUNRISE(Dust, wavelength, spectra, spectra_dusty)
 
             #Model Variants 2: Lagos + Dale
-            wavelength_m2, spectra_m2 = mtr.add_IR_Dale(wavelength, spectra, spectra_dusty)
+            wavelength_m2, spectra_m2 = add_IR_Dale(wavelength, spectra, spectra_dusty)
 
             #Model Variants 3: Somerville + Dale + Safarzadeh
             prescription = 1 #0 for Lagos+ 19; 1 for Somerville+ 12
-            tau_BC_s, eta_BC_s, tau_ISM_s, eta_ISM_s = mtr.compute_attenuation_parameters (prescription, Dust, Gas, Rad)
-            wavelength_s, spectra_s, spectra_dusty_s = mtr.generate_SED(0, Age, Mass, Metals, tau_BC_s, tau_ISM_s, eta_BC_s, eta_ISM_s, time_BC)
+            tau_BC_s, eta_BC_s, tau_ISM_s, eta_ISM_s = compute_attenuation_parameters (prescription, Dust, Gas, Rad)
+            wavelength_s, spectra_s, spectra_dusty_s = generate_SED(0, Age, Mass, Metals, tau_BC_s, tau_ISM_s, eta_BC_s, eta_ISM_s, time_BC)
 
-            wavelength_m3, spectra_m3 = mtr.combine_Dale_SUNRISE(Dust, wavelength_s, spectra_s, spectra_dusty_s)
+            wavelength_m3, spectra_m3 = combine_Dale_SUNRISE(Dust, wavelength_s, spectra_s, spectra_dusty_s)
 
             #Model Variants 4: CF00 + Dale + Safarzadeh
             tau_BC_cf = 1.0
             eta_BC_cf = -0.7
             tau_ISM_cf = 0.3
             eta_ISM_cf = -0.7
-            wavelength_cf, spectra_cf, spectra_dusty_cf = mtr.generate_SED(0, Age, Mass, Metals, 
+            wavelength_cf, spectra_cf, spectra_dusty_cf = generate_SED(0, Age, Mass, Metals, 
                          tau_BC_cf, tau_ISM_cf, eta_BC_cf, eta_ISM_cf, time_BC)
 
-            wavelength_m4, spectra_m4 = mtr.combine_Dale_SUNRISE(Dust, wavelength_cf, spectra_cf, spectra_dusty_cf)
+            wavelength_m4, spectra_m4 = combine_Dale_SUNRISE(Dust, wavelength_cf, spectra_cf, spectra_dusty_cf)
 
             with h5py.File(filename, 'w') as f:
                 f.create_dataset('StellarMass', data=Mass)
@@ -1610,12 +1611,12 @@ if __name__ == '__main__':
     
     from optparse import OptionParser
     import os
-    
+     
     parser = OptionParser()
     
     parser = OptionParser()
     parser.add_option(
-        '-di',
+        '-i',
         '--input_dir_name',
         dest='InputDirName',
         default='./millennium/',
@@ -1633,9 +1634,9 @@ if __name__ == '__main__':
         metavar='FIRST LAST',
         )
     parser.add_option(
-        '-do',
+        '-o',
         '--output_dir_name',
-        dest='InputDirName',
+        dest='OutputDirName',
         default='output/',
         help='output directory name (default: output/)',
         metavar='OUTDIR',
