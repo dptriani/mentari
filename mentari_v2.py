@@ -1536,10 +1536,12 @@ def compute_mab(wavelength, luminosity, filter_list, z):
 def save_spectra(directory_input, firstfile, lastfile, snap_limit, directory_output, Hubble_h):
     
     Age = np.asarray([0.0124, 0.0246, 0.0491, 0.1037, 0.1871, 0.2120, 0.2399, 0.2709, 0.3054, 0.3438, 0.3864, 0.4335, 0.4856, 0.5430, 0.6062, 0.6756, 0.7517, 0.8349, 0.9259, 1.0249, 1.1327, 1.2496, 1.3763, 1.5131, 1.6606, 1.8192, 1.9895, 2.1717, 2.3662, 2.5734, 2.7934, 3.0265, 3.2726, 3.5318, 3.8038, 4.0886, 4.3856, 4.6944, 5.0144, 5.3488, 5.6849, 6.0337, 6.3901, 6.7531, 7.1215, 7.4940, 7.8694, 8.2464, 8.6238, 9.0004, 9.3750, 9.7463, 10.1133, 10.4750, 10.8303, 11.1783, 11.5181, 11.8490, 12.1702, 12.4811, 12.7810, 13.0695, 13.3459, 13.6098])
+    redshift = [127.000, 79.998, 50.000, 30.000, 19.916, 18.244, 16.725, 15.343, 14.086, 12.941, 11.897, 10.944, 10.073, 9.278, 8.550, 7.883, 7.272, 6.712, 6.197, 5.724, 5.289, 4.888, 4.520, 4.179, 3.866, 3.576, 3.308, 3.060, 2.831, 2.619, 2.422, 2.239, 2.070, 1.913, 1.766, 1.630, 1.504, 1.386, 1.276, 1.173, 1.078, 0.989, 0.905, 0.828, 0.755, 0.687, 0.624, 0.564, 0.509, 0.457, 0.408, 0.362, 0.320, 0.280, 0.242, 0.208, 0.175, 0.144, 0.116, 0.089, 0.064, 0.041, 0.020, 0.000]
+
 
     for i in range(firstfile, lastfile+1):
         print('Running file number ', i)
-        filename = directory_output + "mentari_output_v3_" + str(i) + ".hdf5"
+        filename = directory_output + "mentari_output_z" + str(redshift[snap_limit]) + "-" + str(i) + ".hdf5"
         if os.path.isfile(filename) == 0:
 
             mass_dusty, metals_dusty = build_mass_and_metallicity_history(1, directory_input, i, i, snap_limit)
@@ -1634,6 +1636,16 @@ if __name__ == '__main__':
         metavar='FIRST LAST',
         )
     parser.add_option(
+        '-s',
+        '--snapshot_limit',
+        type='int',
+        nargs=1,
+        dest='SnapLim',
+        default=63,
+        help='snapshot limit (default: 63 for z=0)',
+        metavar='SNAPLIM',
+        )
+    parser.add_option(
         '-o',
         '--output_dir_name',
         dest='OutputDirName',
@@ -1653,8 +1665,8 @@ if __name__ == '__main__':
     if not os.path.exists(opt.OutputDirName):
         os.makedirs(opt.OutputDirName)
     
-    snap_limit = 63 #number of last snapshot (snapshot 63 corresponds to z=0)
+#    snap_limit = 27 #number of last snapshot (snapshot 63 corresponds to z=0)
     Hubble_h = 0.73
     
-    save_spectra(opt.InputDirName, opt.FileRange[0], opt.FileRange[1], snap_limit, opt.OutputDirName, Hubble_h)
+    save_spectra(opt.InputDirName, opt.FileRange[0], opt.FileRange[1], opt.SnapLim, opt.OutputDirName, Hubble_h)
     

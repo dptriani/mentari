@@ -3,20 +3,21 @@ import mentari_v2 as mtr
 import os
 import numpy as np
 
-filter_list = ['GALEX_FUV', 'GALEX_NUV', 'TwoMass_Ks', 'VIRCAM_K', 'Sdss_u', 
-              'Sdss_g', 'Sdss_r', 'Sdss_i', 'Sdss_z', 'IRAC_1', 'IRAC_2',
-              'IRAC_3', 'IRAC_4', 'MIPS_24um', 'PACS_70um', 'PACS_160um',
-               'SPIRE_250um', 'SPIRE_350um', 'SPIRE_500um', 'SCUBA_850WB']
+#filter_list = ['GALEX_FUV', 'GALEX_NUV', 'TwoMass_Ks', 'VIRCAM_K', 'Sdss_u', 
+#              'Sdss_g', 'Sdss_r', 'Sdss_i', 'Sdss_z', 'IRAC_1', 'IRAC_2',
+#              'IRAC_3', 'IRAC_4', 'MIPS_24um', 'PACS_70um', 'PACS_160um',
+#               'SPIRE_250um', 'SPIRE_350um', 'SPIRE_500um', 'SCUBA_850WB']
 
+filter_list = ['GALEX_FUV', 'TwoMass_Ks', 'VIRCAM_K','IRAC_4','SPIRE_250um']
 z = 0 
 
-dirname_out = 'output_mag/'
+dirname_out = 'output/'
 dirname_in = 'output/'
-name_input = 'mentari_output_'
-name_output = 'mentari_mag_'
+name_input = 'mentari_output_z0.509-'
+name_output = 'mentari_mag_0.5_'
 ext = '.hdf5'
 firstfile = 0
-lastfile = 7
+lastfile = 1
 
 for i in range(firstfile, lastfile+1):
     file_input = dirname_in + name_input + str(i) + ext
