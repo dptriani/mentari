@@ -13,11 +13,11 @@ z = 0
 
 dirname_out = 'output/'
 dirname_in = 'output/'
-name_input = 'mentari_output_z0.509-'
-name_output = 'mentari_mag_0.5_'
+name_input = 'mentari_output_z3.06-'
+name_output = 'mentari_mag_3.0_'
 ext = '.hdf5'
 firstfile = 0
-lastfile = 1
+lastfile = 3
 
 for i in range(firstfile, lastfile+1):
     file_input = dirname_in + name_input + str(i) + ext
