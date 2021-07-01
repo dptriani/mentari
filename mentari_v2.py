@@ -615,12 +615,12 @@ def generate_SED(SSP, Age, MassHist, MetalHist, tau_head_BC, tau_head_ISM, eta_B
     attenuation_factor_ISM = np.e**(-tau_ISM)
     
     for i in range(len(lookback) - 1):
-        '''
+        
         if i%22 == 0:
             print(int(i*100/219),'%',end = '')
         else: 
             print('.',end = '')
-        '''
+        
         #print("Timestep", i, "/", len(lookback) - 2)
         delta_mass = new_mass_hist[i] - new_mass_hist[i+1]
         deltamass = np.reshape(delta_mass, (-1, 1))
@@ -1547,7 +1547,6 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
     if os.path.isfile(filename) == 0:
 
         mass_dusty, metals_dusty = build_mass_and_metallicity_history(1, directory_input, fileNR, fileNR, snap_limit)
-        '''
         dust, gas_metals, gas, rad  = build_dust_history(1, directory_input, fileNR, fileNR, snap_limit)
 
         #Compute attenuation parameters
@@ -1589,11 +1588,10 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
                      tau_BC_cf, tau_ISM_cf, eta_BC_cf, eta_ISM_cf, time_BC)
 
         wavelength_m4, spectra_m4 = combine_Dale_SUNRISE(Dust, wavelength_cf, spectra_cf, spectra_dusty_cf)
-        '''
+        
         with h5py.File(filename, 'w') as f:
-            f.create_dataset('StellarMass', data=Mass)
-            f.create_dataset('Metallicity', data=Metals)
-            '''
+            f.create_dataset('StellarMass', data=mass_dusty)
+            f.create_dataset('Metallicity', data=metals_dusty)
             f.create_dataset('DustMass', data=Dust)
             f.create_dataset('GasMass', data=Gas)
             f.create_dataset('Radius', data=Rad)
@@ -1607,8 +1605,9 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
             f.create_dataset('Spectra_m4', data=spectra_m4)
             f.create_dataset('Wavelength_stellar', data=wavelength)
             f.create_dataset('Spectra_stellar', data=spectra)
-            '''
-
+            
+    return
+            
 #-----------------------------------------------------------------------------------	
 def distributed_processing(directory_input, firstfile, lastfile, snap_limit, directory_output, Hubble_h):
     
