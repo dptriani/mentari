@@ -1636,7 +1636,8 @@ def distributed_processing(directory_input, firstfile, lastfile, snap_limit, dir
         print(f"[Rank={rank}]: Running nfiles = {nfiles} over "\
               f"ntasks = {ntasks}...")
         
-    for fileNR in range(firstfile, lastfile+1):
+    for filenum in range(rank, nfiles, ntasks):
+        fileNR = filenum + firstfile
         save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h)
         
     # The barrier is only essential so that the total time printed
