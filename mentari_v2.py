@@ -1568,7 +1568,7 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
                      tau_BC, tau_ISM, eta_BC, eta_ISM, time_BC)
 
         wavelength_m1, spectra_m1 = combine_Dale_SUNRISE(Dust, wavelength, spectra, spectra_dusty)
-
+	
         #Model Variants 2: Lagos + Dale
         wavelength_m2, spectra_m2 = add_IR_Dale(wavelength, spectra, spectra_dusty)
 
@@ -1607,7 +1607,7 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
             f.create_dataset('Spectra_stellar', data=spectra)
 
 #-----------------------------------------------------------------------------------	
-def distributed_processing(directory_input, first_file, last_file, snap_limit, directory_output, Hubble_h):
+def distributed_processing(directory_input, firstfile, lastfile, snap_limit, directory_output, Hubble_h):
     
     import sys
     import os
@@ -1627,7 +1627,7 @@ def distributed_processing(directory_input, first_file, last_file, snap_limit, d
         pass
     
     sys.stdout.flush()
-    nfiles = last_file - first_file + 1
+    nfiles = lastfile - firstfile + 1
     if nfiles < ntasks:
         print(f"[Rank={rank}]: Nfiles = {nfiles} < total tasks = {ntasks}. "
             "Some tasks will not have any work assigned (and will be idle)")
