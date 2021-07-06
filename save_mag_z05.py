@@ -83,18 +83,18 @@ def distributed_processing(filter_list, input_file, output_file, z):
 
 if __name__ == '__main__':
     
-    filter_list = ['GALEX_FUV', 'GALEX_NUV', 'TwoMass_Ks', 'VIRCAM_K', 'Sdss_u', 
-                  'Sdss_g', 'Sdss_r', 'Sdss_i', 'Sdss_z', 'IRAC_1', 'IRAC_2',
-                  'IRAC_3', 'IRAC_4', 'MIPS_24um', 'PACS_70um', 'PACS_160um',
-                   'SPIRE_250um', 'SPIRE_350um', 'SPIRE_500um', 'SCUBA_850WB']
+#    filter_list = ['GALEX_FUV', 'GALEX_NUV', 'TwoMass_Ks', 'VIRCAM_K', 'Sdss_u', 
+#                  'Sdss_g', 'Sdss_r', 'Sdss_i', 'Sdss_z', 'IRAC_1', 'IRAC_2',
+#                  'IRAC_3', 'IRAC_4', 'MIPS_24um', 'PACS_70um', 'PACS_160um',
+#                   'SPIRE_250um', 'SPIRE_350um', 'SPIRE_500um', 'SCUBA_850WB']
 
-#    filter_list = ['GALEX_FUV', 'TwoMass_Ks', 'VIRCAM_K','IRAC_4','SPIRE_250um']
+    filter_list = ['GALEX_FUV', 'TwoMass_Ks', 'VIRCAM_K','IRAC_4','SPIRE_250um']
     z = 0 
 
     dirname_out = 'output-test/'
     dirname_in = 'output-test/'
-#    z_in = [0.509, 1.078, 2.07, 3.06] 
-#    z_out = [0.5, 1.0, 2.0, 3.0]
+    z_in = [0.509, 1.078, 2.07, 3.06] 
+    z_out = [0.5, 1.0, 2.0, 3.0]
     firstfile = 0
     lastfile = 32
     name_input = 'mentari_output_z'
@@ -103,14 +103,14 @@ if __name__ == '__main__':
     file_input = []
     file_output = []
     
-#    for j in range(len(z)):    
-#        for i in range(firstfile, lastfile+1):
-#            file_input.extend(dirname_in + name_input + str(z_in[j]) + '-' str(i) + ext)
-#            file_output.extend(dirname_out + name_output + str(z_out[j]) + '_' + str(i) + ext)
+    for j in range(len(z)):    
+        for i in range(firstfile, lastfile+1):
+            file_input.extend(dirname_in + name_input + str(z_in[j]) + '-' str(i) + ext)
+            file_output.extend(dirname_out + name_output + str(z_out[j]) + '_' + str(i) + ext)
             
 
-    for i in range(firstfile, lastfile+1):
-        file_input.append(dirname_in + name_input + '0.0-'+ str(i) + ext)
-        file_output.append(dirname_out + name_output + '0.0_' + str(i) + ext)
+#    for i in range(firstfile, lastfile+1):
+#        file_input.append(dirname_in + name_input + '0.0-'+ str(i) + ext)
+#        file_output.append(dirname_out + name_output + '0.0_' + str(i) + ext)
         
     distributed_processing(filter_list, file_input, file_output,z)
