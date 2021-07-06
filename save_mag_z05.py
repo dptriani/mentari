@@ -92,23 +92,22 @@ if __name__ == '__main__':
     z = 0 
 
     dirname_out = 'output-test/'
-    dirname_in = 'output-test/'
+    dirname_in = 'output/'
     z_in = [0.509, 1.078, 2.07, 3.06] 
     z_out = [0.5, 1.0, 2.0, 3.0]
     firstfile = 0
-    lastfile = 32
+    lastfile = 0
     name_input = 'mentari_output_z'
     name_output = 'mentari_mag_'
     ext = '.hdf5'
     file_input = []
     file_output = []
     
-    for j in range(len(z)):    
+    for j in range(len(z_in)):    
         for i in range(firstfile, lastfile+1):
-            file_input.extend(dirname_in + name_input + str(z_in[j]) + '-' str(i) + ext)
-            file_output.extend(dirname_out + name_output + str(z_out[j]) + '_' + str(i) + ext)
-            
-
+            file_input.append(dirname_in + name_input + str(z_in[j]) + '-' + str(i) + ext)
+            file_output.append(dirname_out + name_output + str(z_out[j]) + '_' + str(i) + ext)
+            print(file_input)
 #    for i in range(firstfile, lastfile+1):
 #        file_input.append(dirname_in + name_input + '0.0-'+ str(i) + ext)
 #        file_output.append(dirname_out + name_output + '0.0_' + str(i) + ext)
