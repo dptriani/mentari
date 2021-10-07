@@ -832,7 +832,7 @@ def compute_attenuation_parameters (prescription_choice, DustMass, GasMass, Radi
 
     '''
 
-    eta_BC = [-0.7] * len(DustMass)
+    eta_BC = [-1.3] * len(DustMass)
     eta_ISM = np.zeros(len(DustMass))
     tau_BC = np.zeros(len(DustMass))
     tau_ISM = np.zeros(len(DustMass))  
@@ -845,7 +845,7 @@ def compute_attenuation_parameters (prescription_choice, DustMass, GasMass, Radi
         Sigma_eta_ISM, eta_ISM[w] = compute_etaISM_Trayford(DustMass[w], GasMass[w], Radius[w])
 
     elif prescription_choice == 1:
-        eta_ISM[w] = -1.3
+        eta_ISM[w] = -0.7
         Sigma_ISM, tau_ISM[w] = compute_tauISM_Somerville (DustMass[w], Radius[w])
         Sigma_BC, tau_BC[w] = compute_tauBC_Somerville (DustMass[w], Radius[w])
     
@@ -1550,7 +1550,8 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
         dust, gas_metals, gas, rad  = build_dust_history(1, directory_input, fileNR, fileNR, snap_limit)
 
         #Compute attenuation parameters
-        w = np.where((mass_dusty[:,snap_limit] > 0) & (dust[:,snap_limit] > 0))[0]
+        #w = np.where((mass_dusty[:,snap_limit] > 0) & (dust[:,snap_limit] > 0))[0]
+	w = np.where(mass_dusty[:,snap_limit] > 0)[0]
         Mass = mass_dusty[w] / Hubble_h 
         Metals = metals_dusty[w]
 

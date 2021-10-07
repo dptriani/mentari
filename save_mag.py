@@ -95,8 +95,8 @@ if __name__ == '__main__':
     dirname_in = 'output-test/'
 #    z_in = [0.509, 1.078, 2.07, 3.06] 
 #    z_out = [0.5, 1.0, 2.0, 3.0]
-    firstfile = 0
-    lastfile = 32
+    firstfile = 127
+    lastfile = 127
     name_input = 'mentari_output_z'
     name_output = 'mentari_mag_'
     ext = '.hdf5'
