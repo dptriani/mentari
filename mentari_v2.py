@@ -1551,7 +1551,7 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
 
         #Compute attenuation parameters
         #w = np.where((mass_dusty[:,snap_limit] > 0) & (dust[:,snap_limit] > 0))[0]
-	w = np.where(mass_dusty[:,snap_limit] > 0)[0]
+        w = np.where(mass_dusty[:,snap_limit] > 0)[0]
         Mass = mass_dusty[w] / Hubble_h 
         Metals = metals_dusty[w]
 
