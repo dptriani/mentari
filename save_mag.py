@@ -17,6 +17,8 @@ def save_mag(filter_list, input_filename, output_filename, z):
         spectra_m3 = np.array(f['Spectra_m3'])
         wavelength_m4 = np.array(f['Wavelength_m4'])
         spectra_m4 = np.array(f['Spectra_m4'])
+        wavelength_s = np.array(f['Wavelength_stellar'])
+        spectra_s = np.array(f['Spectra_stellar'])
         
     
     file_output = output_filename
@@ -26,12 +28,16 @@ def save_mag(filter_list, input_filename, output_filename, z):
         mab2 = mtr.compute_mab(wavelength_m2, spectra_m2, filter_list, z)
         mab3 = mtr.compute_mab(wavelength_m3, spectra_m3, filter_list, z)
         mab4 = mtr.compute_mab(wavelength_m4, spectra_m4, filter_list, z)
-
+        mabs = mtr.compute_mab(wavelength_s, spectra_s, filter_list, z)
+        print('unattenuated have been computed')
+        
         with h5py.File(file_output, 'w') as f:
             f.create_dataset('default', data = mab1)
             f.create_dataset('SUNRISE', data = mab2)
             f.create_dataset('Somerville', data = mab3)
             f.create_dataset('CF00', data = mab4)
+            f.create_dataset('unattenuated', data=mabs)
+            print('unattenuated have been created')
 
     return
 #-----------------------------------------------------------------------------------	
@@ -66,6 +72,7 @@ def distributed_processing(filter_list, input_file, output_file, z):
               f"ntasks = {ntasks}...")
         
     for filenum in range(rank, nfiles, ntasks):
+        print('running save mag')
         save_mag( filter_list, input_file[filenum], output_file[filenum], z)
         
     # The barrier is only essential so that the total time printed

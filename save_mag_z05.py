@@ -17,6 +17,8 @@ def save_mag(filter_list, input_filename, output_filename, z):
         spectra_m3 = np.array(f['Spectra_m3'])
         wavelength_m4 = np.array(f['Wavelength_m4'])
         spectra_m4 = np.array(f['Spectra_m4'])
+        wavelength_s = np.array(f['Wavelength_stellar'])
+        spectra_s = np.array(f['Spectra_stellar'])
         
     
     file_output = output_filename
@@ -26,12 +28,14 @@ def save_mag(filter_list, input_filename, output_filename, z):
         mab2 = mtr.compute_mab(wavelength_m2, spectra_m2, filter_list, z)
         mab3 = mtr.compute_mab(wavelength_m3, spectra_m3, filter_list, z)
         mab4 = mtr.compute_mab(wavelength_m4, spectra_m4, filter_list, z)
+        mabs = mtr.compute_mab(wavelength_s, spectra_s, filter_list, z)
 
         with h5py.File(file_output, 'w') as f:
             f.create_dataset('default', data = mab1)
             f.create_dataset('SUNRISE', data = mab2)
             f.create_dataset('Somerville', data = mab3)
             f.create_dataset('CF00', data = mab4)
+            f.create_dataset('unattenuated', data=mabs)
 
     return
 #-----------------------------------------------------------------------------------	
@@ -93,12 +97,12 @@ if __name__ == '__main__':
 
     dirname_out = 'output/'
     dirname_in = 'output/'
-    #z_in = [0.509, 1.078, 2.07, 3.06] 
-    #z_out = [0.5, 1.0, 2.0, 3.0]
-    z_in = [1.078, 2.07, 3.06]
-    z_out = [1.0, 2.0, 3.0]
+    z_in = [0.509, 1.078, 2.07, 3.06] 
+    z_out = [0.5, 1.0, 2.0, 3.0]
+    #z_in = [1.078, 2.07, 3.06]
+    #z_out = [1.0, 2.0, 3.0]
     firstfile = 0
-    lastfile = 7
+    lastfile = 1
     name_input = 'mentari_output_z'
     name_output = 'mentari_mag_'
     ext = '.hdf5'
