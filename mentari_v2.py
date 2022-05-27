@@ -673,7 +673,14 @@ def compute_area(rad):
     Output: - area (float or array): area of a disk for given radius
     '''
 
-    return (2 * np.pi * rad**2)
+    angle = np.random.uniform(0, np.pi/2, len(rad))
+    edge_rad = rad/7.3
+    angle_rad = np.sin(angle) * (rad - edge_rad) + edge_rad
+
+    area = 2 * np.pi * rad * angle_rad
+
+    return (area)
+#    return (2 * np.pi * rad**2)
 #-----------------------------------------------------------------------------------	
 def compute_tauBC_Trayford(ColdDust, ColdGas, rad):
     '''
@@ -691,7 +698,8 @@ def compute_tauBC_Trayford(ColdDust, ColdGas, rad):
     fdust = ColdDust / ColdGas
     ScaleRad = rad * 1e6 #convert to pc
     halfrad = 1.68 * ScaleRad 
-    threerad = 0.4 * ScaleRad
+    #threerad = 0.4 * ScaleRad
+    threerad = 0.5 * ScaleRad
     
     fdust_MW = 0.33
     Zsun = 0.0189
@@ -724,11 +732,17 @@ def compute_tauISM_Trayford(ColdDust, ColdGas, rad):
 
     ScaleRad = rad * 1e3 #convert to kpc
     halfrad = 1.68 * ScaleRad
-    threerad = 0.4 * ScaleRad
+#    threerad = 0.4 * ScaleRad
+    threerad = 0.5 * ScaleRad
     Sigma_MW = 85 * 1e6 #Msun/kpc2
     
     Sigma_dust_Trayford = [4.088, 4.351, 4.579, 4.823, 5.057, 5.292, 5.528, 5.765, 6.001, 6.234, 6.470, 6.704, 6.941, 7.177, 7.416]
     tau_head_Trayford = [0.031, 0.059, 0.078, 0.129, 0.203, 0.308, 0.467, 0.647, 0.838, 1.065, 1.235, 1.475, 1.571, 1.645, 1.806]
+    
+    #new start >>>>>
+    tau_up_Trayford = [0.06, 0.105, 0.132, 0.211, 0.29, 0.435, 0.607, 0.805, 1.003, 1.241, 1.426, 1.664, 1.849, 1.967, 2.099]
+    tau_down_Trayford = [0.013, 0.026, 0.052, 0.092, 0.145, 0.237, 0.356, 0.528, 0.699, 0.898, 1.056, 1.162, 1.281, 1.347, 1.598]
+    #<<<<< new end
 
     #area = compute_area(halfrad)
     area = compute_area(threerad)
@@ -737,7 +751,20 @@ def compute_tauISM_Trayford(ColdDust, ColdGas, rad):
     #Sigma_dust = np.log10(fdust * Sigma_gas)
     tau_ISM = np.interp(Sigma_dust, Sigma_dust_Trayford, tau_head_Trayford)
     
-    return Sigma_dust, tau_ISM
+    #new start >>>>
+    tau_up =  np.interp(Sigma_dust, Sigma_dust_Trayford, tau_up_Trayford)
+    tau_down = np.interp(Sigma_dust, Sigma_dust_Trayford, tau_down_Trayford)
+
+    tau = []
+    for i in range(len(tau_up)):
+        if np.isnan(tau_up[i]):   #while y == nan:
+            tau.append(nan)
+            continue
+        tau.append(np.random.uniform(tau_up[i], tau_down[i]))
+    #<<<< new end
+
+    #return Sigma_dust, tau_ISM
+    return Sigma_dust, tau
 
 #-----------------------------------------------------------------------------------	
 
@@ -755,18 +782,39 @@ def compute_etaISM_Trayford(ColdDust, ColdGas, rad):
 
     ScaleRad = rad * 1e3 #convert to kpc
     halfrad = 1.68 * ScaleRad
-    threerad = 0.4 * ScaleRad
+    #threerad = 0.4 * ScaleRad
+    threerad = 0.5 * ScaleRad
     
     Sigma_dust_Trayford = [4.116, 4.354, 4.588, 4.822, 5.061, 5.293, 5.533, 5.763, 6.003, 6.236, 6.469, 6.706, 6.943, 7.181, 7.411]
     eta_ISM_Trayford = [-1.379, -1.357, -1.334, -1.243, -1.170, -1.062, -0.922, -0.778, -0.668, -0.570, -0.506, -0.453, -0.381, -0.318, -0.307]
+    #new start >>>>
+    eta_ISM_down = [-2.12, -1.96, -1.71, -1.64, -1.5, -1.32, -1.16, -0.99, -0.84, -0.74, -0.68, -0.606, -0.5, -0.42, -0.4]
+    eta_ISM_up = [-1.08, -1.049, -1.016, -0.96, 0.91, 0.803, 0.696, 0.58, 0.508, 0.41, 0.37, 0.327, 0.237, 0.172, 0.196]
+    #<<<< new end
+    
     #area = compute_area(halfrad)
     area = compute_area(threerad)
     
     Sigma_dust = np.log10(ColdDust / area)
     #Sigma_dust = np.log10(fdust * Sigma_gas)
     eta_ISM = np.interp(Sigma_dust, Sigma_dust_Trayford, eta_ISM_Trayford)
+
+    #new start >>>
+    eta_up =  np.interp(Sigma_dust, Sigma_dust_Trayford, eta_ISM_up)
+    eta_down = np.interp(Sigma_dust, Sigma_dust_Trayford, eta_ISM_down)
     
-    return Sigma_dust, eta_ISM
+
+    eta = []
+    for i in range(len(eta_up)):
+        if np.isnan(eta_up[i]):   #while y == nan:
+            eta.append(nan)
+            continue
+        eta.append(np.random.uniform(eta_up[i], eta_down[i]))
+
+    #<<< new end
+    
+    #return Sigma_dust, eta_ISM
+    return Sigma_dust, eta
 
 #-----------------------------------------------------------------------------------	
 
@@ -835,14 +883,20 @@ def compute_attenuation_parameters (prescription_choice, DustMass, GasMass, Radi
     eta_BC = [-1.3] * len(DustMass)
     eta_ISM = np.zeros(len(DustMass))
     tau_BC = np.zeros(len(DustMass))
-    tau_ISM = np.zeros(len(DustMass))  
+    tau_ISM = np.zeros(len(DustMass)) 
+    #new start >>>
+    #Sigma_tau_ISM = np.zeros(len(DustMass))
+    #Sigma_eta_ISM = np.zeros(len(DustMass))
+    #<<<new end 
     
     w = np.where(DustMass > 0)[0]
     
     if prescription_choice == 0:
         Sigma_BC, tau_BC[w] = compute_tauBC_Trayford(DustMass[w], GasMass[w], Radius[w])
         Sigma_tau_ISM, tau_ISM[w] = compute_tauISM_Trayford(DustMass[w], GasMass[w], Radius[w])
+        #Sigma_tau_ISM[w], tau_ISM[w] = compute_tauISM_Trayford(DustMass[w], GasMass[w], Radius[w])
         Sigma_eta_ISM, eta_ISM[w] = compute_etaISM_Trayford(DustMass[w], GasMass[w], Radius[w])
+        #Sigma_eta_ISM[w], eta_ISM[w] = compute_etaISM_Trayford(DustMass[w], GasMass[w], Radius[w])
 
     elif prescription_choice == 1:
         eta_ISM[w] = -0.7
@@ -853,6 +907,8 @@ def compute_attenuation_parameters (prescription_choice, DustMass, GasMass, Radi
         print("Choose 0 for attenuation prescriptions from Lagos+19 and 1 for Somerville+12")
         
     return tau_BC, eta_BC, tau_ISM, eta_ISM
+    #return tau_BC, eta_BC, tau_ISM, eta_ISM, Sigma_tau_ISM, Sigma_eta_ISM
+
 #-----------------------------------------------------------------------------------	
 def determine_idx_Rieke(LIR):
     
@@ -919,6 +975,7 @@ def add_IR_Dale (wavelength, spectra, spectra_dusty):
     
     for i in range(len(Ldust)):
         LIR_mentari = np.trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
+#        LIR_mentari = np.trapz(Ldust[i], wavelength)
         #---------------------------------------------------
         '''
         #Compute alpha based on Rieke+ 2009
@@ -938,6 +995,8 @@ def add_IR_Dale (wavelength, spectra, spectra_dusty):
         #----------------------------------------------------
         '''
         idx = determine_idx_Marcillac(LIR_mentari)
+#        alpha_SF, log_fnu_SF = np.loadtxt('files/alpha.dat', unpack=True)
+#        idx = np.where(alpha_SF == 1.0)[0]
         spectra_IR = 10 ** Dale_template[idx[0]+1] 
 
         LIR_dale = np.trapz(spectra_IR, lambda_IR)
@@ -1119,7 +1178,29 @@ def combine_Dale_SUNRISE(DustMass, wavelength, spectra, spectra_dusty):
         new_spec[i][wb] += np.interp(all_wave[wb], wavelength_sunrise, spectra_sunrise)
                 
     return all_wave, new_spec
-                
+
+
+#-----------------------------------------------------------------------------------	
+
+def compute_LIR (wavelength, spectra, spectra_dusty):
+
+    '''
+    compute total infrared luminosity in log10 scale
+    
+    Input:  - wavelength (N-dimensional array)
+            - spectra (MxN-dimensional array) - intrinsic stellar spectra corresponding to each wavelength
+            - spectra_dusty (MxN-dimensional array) - attenuated spectra corresponding to each wavelength
+    Output: - log10 LIR (M-dimensional array) - in Lsun   
+    '''
+
+    Ldust = (spectra - spectra_dusty)
+    w = np.where(wavelength < 912)[0]
+    idx_912 = w[-1]
+    LIRs = []
+    for i in range(len(Ldust)):
+        LIR = np.trapz(Ldust[i][idx_912:-1], wavelength[idx_912:-1])
+        LIRs.append(LIR)
+    return (np.log10(LIRs))
 
 #-----------------------------------------------------------------------------------	
 
@@ -1443,13 +1524,13 @@ def luminosity_distance(z, h0=73., omega_m=0.27, omega_l=0.73):
             
     Output: - luminosity distance (float) -- in parsec
     '''
-    
+    import scipy
     c = 2.9979e18 #velocity of lights
     omega_k = 1. - omega_m - omega_l
     dh = c/1.e13/h0 * 1.e6 #in pc
     
     if z > 0.:
-        dc, edc = integrate.quad(lambda x: (omega_m * (1.+x)** 3 + omega_k * (1+x)**2 + omega_l)**(-.5), 0., z, epsrel=1e-4)
+        dc, edc = scipy.integrate.quad(lambda x: (omega_m * (1.+x)** 3 + omega_k * (1+x)**2 + omega_l)**(-.5), 0., z, epsrel=1e-4)
         dc = dh * dc
     else:
     # Bad idea as there is something *wrong* going on
@@ -1526,10 +1607,14 @@ def compute_mab(wavelength, luminosity, filter_list, z):
     F = read_filters()
     mab_list = []
     for i in range(len(filter_list)):
-    	filters_wave = eval('F.' + filter_list[i] + '_wave')
-    	filters = eval('F.' + filter_list[i])
-    	mab = compute_individual_mab(wavelength, luminosity, filters_wave, filters, z)
-    	mab_list.append(mab)
+        filters_wave = eval('F.' + filter_list[i] + '_wave')
+        filters = eval('F.' + filter_list[i])
+        if filters[0] != 0:
+            filters[0] = 0
+        if filters[-1] != 0:
+            filters[-1] = 0
+        mab = compute_individual_mab(wavelength, luminosity, filters_wave, filters, z)
+        mab_list.append(mab)
     return(mab_list)
 #-----------------------------------------------------------------------------------	
 
@@ -1567,9 +1652,11 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
         SSP = 0 #0 for BC03 
         wavelength, spectra, spectra_dusty = generate_SED(0, Age, Mass, Metals, 
                      tau_BC, tau_ISM, eta_BC, eta_ISM, time_BC)
-
+        
+#        LIR_m1 = compute_LIR(wavelength, spectra, spectra_dusty)
         wavelength_m1, spectra_m1 = combine_Dale_SUNRISE(Dust, wavelength, spectra, spectra_dusty)
-	
+         
+            
         #Model Variants 2: Lagos + Dale
         wavelength_m2, spectra_m2 = add_IR_Dale(wavelength, spectra, spectra_dusty)
 
@@ -1577,7 +1664,7 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
         prescription = 1 #0 for Lagos+ 19; 1 for Somerville+ 12
         tau_BC_s, eta_BC_s, tau_ISM_s, eta_ISM_s = compute_attenuation_parameters (prescription, Dust, Gas, Rad)
         wavelength_s, spectra_s, spectra_dusty_s = generate_SED(0, Age, Mass, Metals, tau_BC_s, tau_ISM_s, eta_BC_s, eta_ISM_s, time_BC)
-
+#        LIR_m3 = compute_LIR(wavelength_s, spectra_s, spectra_dusty_s)
         wavelength_m3, spectra_m3 = combine_Dale_SUNRISE(Dust, wavelength_s, spectra_s, spectra_dusty_s)
 
         #Model Variants 4: CF00 + Dale + Safarzadeh
@@ -1587,7 +1674,7 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
         eta_ISM_cf = -0.7
         wavelength_cf, spectra_cf, spectra_dusty_cf = generate_SED(0, Age, Mass, Metals, 
                      tau_BC_cf, tau_ISM_cf, eta_BC_cf, eta_ISM_cf, time_BC)
-
+#        LIR_m4 = compute_LIR(wavelength_cf, spectra_cf, spectra_dusty_cf)
         wavelength_m4, spectra_m4 = combine_Dale_SUNRISE(Dust, wavelength_cf, spectra_cf, spectra_dusty_cf)
         
         with h5py.File(filename, 'w') as f:
@@ -1605,8 +1692,7 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
             f.create_dataset('Wavelength_m4', data=wavelength_m4)
             f.create_dataset('Spectra_m4', data=spectra_m4)
             f.create_dataset('Wavelength_stellar', data=wavelength)
-            f.create_dataset('Spectra_stellar', data=spectra)
-            
+            f.create_dataset('Spectra_stellar', data=spectra)            
     return
             
 #-----------------------------------------------------------------------------------	

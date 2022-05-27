@@ -98,12 +98,12 @@ if __name__ == '__main__':
 #    filter_list = ['GALEX_FUV', 'TwoMass_Ks', 'VIRCAM_K','IRAC_4','SPIRE_250um']
     z = 0 
 
-    dirname_out = 'output/'
-    dirname_in = 'output/'
+    dirname_out = 'output_tau/'
+    dirname_in = 'output_tau/'
 #    z_in = [0.509, 1.078, 2.07, 3.06] 
 #    z_out = [0.5, 1.0, 2.0, 3.0]
     firstfile = 0
-    lastfile = 7
+    lastfile = 1
     name_input = 'mentari_output_z'
     name_output = 'mentari_mag_'
     ext = '.hdf5'
