@@ -1678,8 +1678,8 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
         wavelength_m4, spectra_m4 = combine_Dale_SUNRISE(Dust, wavelength_cf, spectra_cf, spectra_dusty_cf)
         
         with h5py.File(filename, 'w') as f:
-            f.create_dataset('StellarMass', data=mass_dusty)
-            f.create_dataset('Metallicity', data=metals_dusty)
+            f.create_dataset('StellarMass', data=Mass[snap_limit]/ Hubble_h)
+            f.create_dataset('Metallicity', data=Metals[snap_limit])
             f.create_dataset('DustMass', data=Dust)
             f.create_dataset('GasMass', data=Gas)
             f.create_dataset('Radius', data=Rad)
