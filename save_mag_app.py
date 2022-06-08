@@ -84,10 +84,10 @@ if __name__ == '__main__':
     filter_list = ['WISE_W1'] 
     dirname_out = 'output_app/'
     dirname_in = 'output_app/'
-    z_in = [0.02, 0.041, 0.064]
-    z_out = [0.02, 0.041, 0.064]
+    z_in = [0.755, 0.624, 0.564, 0.509]
+    z_out = [0.755, 0.624, 0.564, 0.509]
     firstfile = 0
-    lastfile = 1
+    lastfile = 31
     name_input = 'mentari_output_z'
     name_output = 'mag_'
     ext = '.hdf5'
