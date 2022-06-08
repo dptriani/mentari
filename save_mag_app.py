@@ -84,10 +84,13 @@ if __name__ == '__main__':
     filter_list = ['WISE_W1'] 
     dirname_out = 'output_app/'
     dirname_in = 'output_app/'
-    z_in = [0.755, 0.624, 0.564, 0.509]
-    z_out = [0.755, 0.624, 0.564, 0.509]
+    #z_in = [0.755, 0.624, 0.564, 0.509]
+    #z_out = [0.755, 0.624, 0.564, 0.509]
+    z_in = [0.509]
+    z_out = [0.509]
+    
     firstfile = 0
-    lastfile = 31
+    lastfile = 0
     name_input = 'mentari_output_z'
     name_output = 'mag_'
     ext = '.hdf5'
@@ -98,7 +101,7 @@ if __name__ == '__main__':
         for i in range(firstfile, lastfile+1):
             file_input.append(dirname_in + name_input + str(z_in[j]) + '-' + str(i) + ext)
             file_output.append(dirname_out + name_output + str(z_out[j]) + '_' + str(i) + ext)
-        distributed_processing(filter_list, file_input, file_output,z_in[j])
+        distributed_processing(filter_list, file_input, file_output, z_in[j])
 #            print(file_input)
 #    for i in range(firstfile, lastfile+1):
 #        file_input.append(dirname_in + name_input + '0.0-'+ str(i) + ext)
