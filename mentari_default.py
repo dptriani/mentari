@@ -1524,7 +1524,7 @@ def luminosity_distance(z, h0=73., omega_m=0.27, omega_l=0.73):
             
     Output: - luminosity distance (float) -- in parsec
     '''
-    import scipy
+    import scipy.integrate
     c = 2.9979e18 #velocity of lights
     omega_k = 1. - omega_m - omega_l
     dh = c/1.e13/h0 * 1.e6 #in pc
@@ -1581,14 +1581,13 @@ def compute_individual_mab(wavelength, luminosity, filt_wave, filt, z):
     Output: - AB magnitude (float) of the input filter
     '''
     
-    from scipy.integrate import simps
     c = 2.9979e18
     wavelength, spectrum = doppler_shift(wavelength, luminosity, z)
     filt_int  = np.interp(wavelength, filt_wave, filt)
     filtSpec = filt_int * spectrum
-    flux = simps(filtSpec, wavelength)
-    I1 = simps(spectrum*filt_int*wavelength,wavelength)
-    I2 = simps(filt_int/wavelength, wavelength) 
+    flux = np.trapz(filtSpec, wavelength)
+    I1 = np.trapz(spectrum*filt_int*wavelength,wavelength)
+    I2 = np.trapz(filt_int/wavelength, wavelength) 
     fnu = I1/I2/c
     mAB = -2.5*np.log10(fnu) - 48.6
     return(mAB)

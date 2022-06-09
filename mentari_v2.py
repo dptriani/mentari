@@ -1581,14 +1581,13 @@ def compute_individual_mab(wavelength, luminosity, filt_wave, filt, z):
     Output: - AB magnitude (float) of the input filter
     '''
     
-    from scipy.integrate import simps
     c = 2.9979e18
     wavelength, spectrum = doppler_shift(wavelength, luminosity, z)
     filt_int  = np.interp(wavelength, filt_wave, filt)
     filtSpec = filt_int * spectrum
-    flux = simps(filtSpec, wavelength)
-    I1 = simps(spectrum*filt_int*wavelength,wavelength)
-    I2 = simps(filt_int/wavelength, wavelength) 
+    flux = np.trapz(filtSpec, wavelength)
+    I1 = np.trapz(spectrum*filt_int*wavelength,wavelength)
+    I2 = np.trapz(filt_int/wavelength, wavelength) 
     fnu = I1/I2/c
     mAB = -2.5*np.log10(fnu) - 48.6
     return(mAB)

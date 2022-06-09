@@ -1,7 +1,7 @@
 
 def save_mag(filter_list, input_filename, output_filename, z):
     import h5py
-    import mentari_v2 as mtr
+    import mentari_default as mtr
     import os
     import numpy as np
 
@@ -86,13 +86,13 @@ if __name__ == '__main__':
     dirname_in = 'output_app/'
     #z_in = [0.755, 0.624, 0.564, 0.509]
     #z_out = [0.755, 0.624, 0.564, 0.509]
-    z_in = [0.509]
-    z_out = [0.509]
+    z_in = [0.02]
+    z_out = [0.02]
     
     firstfile = 0
-    lastfile = 0
+    lastfile = 1
     name_input = 'mentari_output_z'
-    name_output = 'mag_'
+    name_output = 'mag_v2_'
     ext = '.hdf5'
     
     for j in range(len(z_in)): 
