@@ -626,14 +626,14 @@ def generate_SED(SSP, Age, MassHist, MetalHist, tau_head_BC, tau_head_ISM, eta_B
         deltamass = np.reshape(delta_mass, (-1, 1))
 
         w1 = np.where(new_metal_hist[i] < half_metal[0])[0]
-        total_lum[w1] += deltamass[w1] * lum[0][i]
+        total_lum[w1] += deltamass[w1] * lum[0][i+1]
 
         for j in range(len(half_metal)-1):
             w2 = np.where((new_metal_hist[i] > half_metal[j]) & (new_metal_hist[i] <= half_metal[j+1]))[0]
-            total_lum[w2] += deltamass[w2] * lum[j+1][i]
+            total_lum[w2] += deltamass[w2] * lum[j+1][i+1]
 
         w3 = np.where(new_metal_hist[i] > half_metal[-1])[0]
-        total_lum[w3] += deltamass[w3] * lum[-1][i]
+        total_lum[w3] += deltamass[w3] * lum[-1][i+1]
 
 
         #birthcloud extinction
@@ -906,8 +906,8 @@ def compute_attenuation_parameters (prescription_choice, DustMass, GasMass, Radi
     else:
         print("Choose 0 for attenuation prescriptions from Lagos+19 and 1 for Somerville+12")
         
-    #return tau_BC, eta_BC, tau_ISM, eta_ISM
-    return tau_BC, eta_BC, tau_ISM, eta_ISM, Sigma_tau_ISM, Sigma_eta_ISM
+    return tau_BC, eta_BC, tau_ISM, eta_ISM
+    #return tau_BC, eta_BC, tau_ISM, eta_ISM, Sigma_tau_ISM, Sigma_eta_ISM
 
 #-----------------------------------------------------------------------------------	
 def determine_idx_Rieke(LIR):
@@ -1388,8 +1388,11 @@ def read_filters():
     F.MegaCam_i = F.response[342239:342378]
     F.MegaCam_z_wave = F.wavelength[342378:342530]
     F.MegaCam_z = F.response[342378:342530]
-    F.WISE_W1_wave = F.wavelength[342530:342717]
-    F.WISE_W1 = F.response[342530:342717]
+ #   F.WISE_W1_wave = F.wavelength[342530:342717]
+ #   F.WISE_W1 = F.response[342530:342717]
+    W1 = np.loadtxt('files/W1.txt')
+    F.WISE_W1_wave = W1[:,0] * 1e4
+    F.WISE_W1 = W1[:,1]
     F.WISE_W2_wave = F.wavelength[342717:342967]
     F.WISE_W2 = F.response[342717:342967]
     F.WISE_W3_wave = F.wavelength[342967:344467]
@@ -1524,7 +1527,7 @@ def luminosity_distance(z, h0=73., omega_m=0.27, omega_l=0.73):
             
     Output: - luminosity distance (float) -- in parsec
     '''
-    import scipy
+    import scipy.integrate
     c = 2.9979e18 #velocity of lights
     omega_k = 1. - omega_m - omega_l
     dh = c/1.e13/h0 * 1.e6 #in pc
@@ -1563,9 +1566,12 @@ def doppler_shift(wavelength, luminosity, z): #wavelength in micrometer
     if z == 0:
     	distance = 10 * pc2cm #distance in cm: 1pc = 3.0856e18 cm
     else:
-    	wavelength = wavelength * (1. + z)
-    	distance = luminosity_distance(z) * pc2cm #distance in cm: 1pc = 3.0856e18 cm
-    spectrum = luminosity * solar_lum / (4*np.pi*distance**2) #spec in erg/cm2/s/AA 
+        luminosity = np.interp(wavelength, wavelength*(1+z), luminosity)
+        
+        #wavelength = wavelength * (1. + z)
+        distance = luminosity_distance(z) * pc2cm #distance in cm: 1pc = 3.0856e18 cm
+    #spectrum = luminosity * solar_lum / (4*np.pi*distance**2) #spec in erg/cm2/s/AA
+    spectrum = luminosity /wavelength * solar_lum / (4*np.pi*distance**2) #spec in erg/cm2/s/AA 
     return (wavelength, spectrum)
 #-----------------------------------------------------------------------------------	
 def compute_individual_mab(wavelength, luminosity, filt_wave, filt, z):
@@ -1695,6 +1701,55 @@ def save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h
     return
             
 #-----------------------------------------------------------------------------------	
+def save_spectra_default(directory_input, fileNR, snap_limit, directory_output, Hubble_h):
+    
+    Age = np.asarray([0.0124, 0.0246, 0.0491, 0.1037, 0.1871, 0.2120, 0.2399, 0.2709, 0.3054, 0.3438, 0.3864, 0.4335, 0.4856, 0.5430, 0.6062, 0.6756, 0.7517, 0.8349, 0.9259, 1.0249, 1.1327, 1.2496, 1.3763, 1.5131, 1.6606, 1.8192, 1.9895, 2.1717, 2.3662, 2.5734, 2.7934, 3.0265, 3.2726, 3.5318, 3.8038, 4.0886, 4.3856, 4.6944, 5.0144, 5.3488, 5.6849, 6.0337, 6.3901, 6.7531, 7.1215, 7.4940, 7.8694, 8.2464, 8.6238, 9.0004, 9.3750, 9.7463, 10.1133, 10.4750, 10.8303, 11.1783, 11.5181, 11.8490, 12.1702, 12.4811, 12.7810, 13.0695, 13.3459, 13.6098])
+    redshift = [127.000, 79.998, 50.000, 30.000, 19.916, 18.244, 16.725, 15.343, 14.086, 12.941, 11.897, 10.944, 10.073, 9.278, 8.550, 7.883, 7.272, 6.712, 6.197, 5.724, 5.289, 4.888, 4.520, 4.179, 3.866, 3.576, 3.308, 3.060, 2.831, 2.619, 2.422, 2.239, 2.070, 1.913, 1.766, 1.630, 1.504, 1.386, 1.276, 1.173, 1.078, 0.989, 0.905, 0.828, 0.755, 0.687, 0.624, 0.564, 0.509, 0.457, 0.408, 0.362, 0.320, 0.280, 0.242, 0.208, 0.175, 0.144, 0.116, 0.089, 0.064, 0.041, 0.020, 0.000]
+
+
+#    for i in range(firstfile, lastfile+1):
+    print('Running file number ', fileNR)
+    filename = directory_output + "mentari_output_z" + str(redshift[snap_limit]) + "-" + str(fileNR) + ".hdf5"
+    if os.path.isfile(filename) == 0:
+
+        mass_dusty, metals_dusty = build_mass_and_metallicity_history(1, directory_input, fileNR, fileNR, snap_limit)
+        dust, gas_metals, gas, rad  = build_dust_history(1, directory_input, fileNR, fileNR, snap_limit)
+
+        #Compute attenuation parameters
+        #w = np.where((mass_dusty[:,snap_limit] > 0) & (dust[:,snap_limit] > 0))[0]
+        w = np.where(mass_dusty[:,snap_limit] > 0)[0]
+        Mass = mass_dusty[w] / Hubble_h 
+        Metals = metals_dusty[w]
+
+        Dust = dust[w,snap_limit] / Hubble_h
+        Gas = gas[w,snap_limit] / Hubble_h
+        Rad = rad[w,snap_limit] / Hubble_h
+
+        prescription = 0 #0 for Lagos+ 19; 1 for Somerville+ 12
+        tau_BC, eta_BC, tau_ISM, eta_ISM = compute_attenuation_parameters (prescription, Dust, Gas, Rad)
+
+        #Model Variants 1: Lagos + Dale + Safarzadeh
+        time_BC = 10**7
+        SSP = 0 #0 for BC03 
+        wavelength, spectra, spectra_dusty = generate_SED(0, Age, Mass, Metals, 
+                     tau_BC, tau_ISM, eta_BC, eta_ISM, time_BC)
+        
+#        LIR_m1 = compute_LIR(wavelength, spectra, spectra_dusty)
+        wavelength_m1, spectra_m1 = combine_Dale_SUNRISE(Dust, wavelength, spectra, spectra_dusty)
+         
+        with h5py.File(filename, 'w') as f:
+            f.create_dataset('StellarMass', data=mass_dusty[w,snap_limit] / Hubble_h)
+            f.create_dataset('Metallicity', data=metals_dusty[w,snap_limit])
+            f.create_dataset('DustMass', data=Dust)
+            f.create_dataset('GasMass', data=Gas)
+            f.create_dataset('Radius', data=Rad)
+            f.create_dataset('Wavelength_m1', data=wavelength_m1)
+            f.create_dataset('Spectra_m1', data=spectra_m1)
+            f.create_dataset('Wavelength_stellar', data=wavelength)
+            f.create_dataset('Spectra_stellar', data=spectra)            
+    return
+            
+#-----------------------------------------------------------------------------------	
 def distributed_processing(directory_input, firstfile, lastfile, snap_limit, directory_output, Hubble_h):
     
     import sys
@@ -1726,6 +1781,7 @@ def distributed_processing(directory_input, firstfile, lastfile, snap_limit, dir
         
     for filenum in range(rank, nfiles, ntasks):
         fileNR = filenum + firstfile
+        #save_spectra_default(directory_input, fileNR, snap_limit, directory_output, Hubble_h)
         save_spectra(directory_input, fileNR, snap_limit, directory_output, Hubble_h)
         
     # The barrier is only essential so that the total time printed

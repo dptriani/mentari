@@ -20,11 +20,13 @@ def save_mag(filter_list, input_filename, output_filename, z):
     if os.path.isfile(file_output) == 0:
         mab_app = mtr.compute_mab(wavelength_m1, spectra_m1, filter_list, z)
         mab_abs = mtr.compute_mab(wavelength_m1, spectra_m1, filter_list, 0)
+        mab_abs_s = mtr.compute_mab(wavelength_s, spectra_s, filter_list, 0)
 
         with h5py.File(file_output, 'w') as f:
             f.create_dataset('stellarmass', data = mass)
             f.create_dataset('apparent', data = mab_app)
             f.create_dataset('absolut', data = mab_abs)
+            f.create_dataset('absolut_stellar', data = mab_abs_s)
     return
 #-----------------------------------------------------------------------------------	
 
@@ -81,18 +83,18 @@ if __name__ == '__main__':
 #                   'SPIRE_250um', 'SPIRE_350um', 'SPIRE_500um', 'SCUBA_850WB']
 
 #    filter_list = ['GALEX_FUV', 'TwoMass_Ks', 'VIRCAM_K','IRAC_4','SPIRE_250um']
-    filter_list = ['WISE_W1'] 
+    filter_list = ['TwoMass_Ks', 'WISE_W1', 'IRAC_1'] 
     dirname_out = 'output_app/'
     dirname_in = 'output_app/'
     #z_in = [0.755, 0.624, 0.564, 0.509]
     #z_out = [0.755, 0.624, 0.564, 0.509]
-    z_in = [0.02]
-    z_out = [0.02]
+    z_in = [0.0]
+    z_out = [0.0]
     
     firstfile = 0
     lastfile = 1
     name_input = 'mentari_output_z'
-    name_output = 'mag_v2_'
+    name_output = 'mag_NIR_v3_'
     ext = '.hdf5'
     
     for j in range(len(z_in)): 

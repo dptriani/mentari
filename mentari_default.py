@@ -1388,8 +1388,11 @@ def read_filters():
     F.MegaCam_i = F.response[342239:342378]
     F.MegaCam_z_wave = F.wavelength[342378:342530]
     F.MegaCam_z = F.response[342378:342530]
-    F.WISE_W1_wave = F.wavelength[342530:342717]
-    F.WISE_W1 = F.response[342530:342717]
+ #   F.WISE_W1_wave = F.wavelength[342530:342717]
+ #   F.WISE_W1 = F.response[342530:342717]
+    W1 = np.loadtxt('files/W1.txt')
+    F.WISE_W1_wave = W1[:,0] * 1e4
+    F.WISE_W1 = W1[:,1]
     F.WISE_W2_wave = F.wavelength[342717:342967]
     F.WISE_W2 = F.response[342717:342967]
     F.WISE_W3_wave = F.wavelength[342967:344467]
@@ -1563,9 +1566,12 @@ def doppler_shift(wavelength, luminosity, z): #wavelength in micrometer
     if z == 0:
     	distance = 10 * pc2cm #distance in cm: 1pc = 3.0856e18 cm
     else:
-    	wavelength = wavelength * (1. + z)
-    	distance = luminosity_distance(z) * pc2cm #distance in cm: 1pc = 3.0856e18 cm
-    spectrum = luminosity * solar_lum / (4*np.pi*distance**2) #spec in erg/cm2/s/AA 
+        luminosity = np.interp(wavelength, wavelength*(1+z), luminosity)
+        
+        #wavelength = wavelength * (1. + z)
+        distance = luminosity_distance(z) * pc2cm #distance in cm: 1pc = 3.0856e18 cm
+    #spectrum = luminosity * solar_lum / (4*np.pi*distance**2) #spec in erg/cm2/s/AA
+    spectrum = luminosity /wavelength * solar_lum / (4*np.pi*distance**2) #spec in erg/cm2/s/AA 
     return (wavelength, spectrum)
 #-----------------------------------------------------------------------------------	
 def compute_individual_mab(wavelength, luminosity, filt_wave, filt, z):
